@@ -1,0 +1,27 @@
+version: '3'
+services:
+    spark:
+      image: bitnami/spark:2.4.4
+      ports:
+        - "8080:8080"
+        - "7077:7077"
+    emr:
+      build: .
+      ports:
+        - "5000:5000"
+      image: adgear/emr-local:latest
+      volumes:
+        - ./src:/home/app/src
+        - ./test:/home/app/test
+    livy:
+      image: cloudiator/livy-server:melodic-stable
+      ports:
+        - "8998:8998"
+      environment:
+        - SPARK_MASTER_ENDPOINT=spark
+        - SPARK_MASTER_PORT=7077
+        - DEPLOY_MODE=client
+      volumes:
+      - /tmp:/tmp
+
+        
