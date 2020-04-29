@@ -12,4 +12,4 @@ WORKDIR /home/app
 
 COPY . .
 
-CMD ["python", "src/emr.py"]
+CMD ["python", "main.py"]

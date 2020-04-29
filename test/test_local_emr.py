@@ -1,12 +1,13 @@
 import boto3
 from test.example_step import EXAMPLE_STEP
+import time
 
 
 def test_my_model_save():
     emr = boto3.client(
         service_name='emr',
         region_name='us-east-1',
-        endpoint_url='http://localhost:5000',
+        endpoint_url='http://localhost:3000',
     )
     resp = emr.run_job_flow(
         Name="log-etl-dev",
@@ -27,12 +28,10 @@ def test_my_model_save():
 
     cluster_id = resp['JobFlowId']
 
-    add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=EXAMPLE_STEP)
+    add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[EXAMPLE_STEP])
     print(add_response)
     first_step_ip = add_response['StepIds'][0]
-    count = 1
-    while count != 0:
-        resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        print(resp)
-        count = count - 1
+    time.sleep(5)
+    resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
+    print(resp)
     raise ValueError('drrrr')

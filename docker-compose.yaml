@@ -5,16 +5,23 @@ services:
       ports:
         - "8080:8080"
         - "7077:7077"
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+        interval: 3s
+        timeout: 3s
+        retries: 3
     emr:
       build: .
       ports:
-        - "5000:5000"
-      image: adgear/emr-local:latest
+        - "3000:3000"
       volumes:
         - ./src:/home/app/src
         - ./test:/home/app/test
+        - ~/.aws:/root/.aws
     livy:
       image: cloudiator/livy-server:melodic-stable
+      depends_on:
+        - spark
       ports:
         - "8998:8998"
       environment:
