@@ -1,34 +1,24 @@
 import moto.server as server
-import moto.emr.models as models
-from src.local_emr import add_steps, read_task_queue, list_steps, describe_step, FailureDetails
-from multiprocessing import Queue, Process
-import moto.emr.responses as resp
-from moto.core import BaseModel
-from datetime import datetime
-import pytz
-from src.response_templates import DESCRIBE_STEP_TEMPLATE, LIST_STEPS_TEMPLATE
-from moto.emr.utils import random_step_id
-
-resp.DESCRIBE_STEP_TEMPLATE = DESCRIBE_STEP_TEMPLATE
-
-resp.LIST_STEPS_TEMPLATE = LIST_STEPS_TEMPLATE
-
-process_queue = Queue()
-
-status_queue = Queue()
-
-models.FakeCluster.process_queue = process_queue
-
-models.FakeCluster.status_queue = status_queue
+from src.emr.models import FakeCluster
+from src.local_emr import read_task_queue
+from multiprocessing import Process
+import sys
 
 
-# Overwrite these function
-models.FakeCluster.add_steps = add_steps
-models.ElasticMapReduceBackend.list_steps = list_steps
-models.ElasticMapReduceBackend.describe_step = describe_step
+# Replace moto emr with the custom emr implementation
+del sys.modules['moto.emr']
+sys.modules['moto.emr'] = __import__('src.emr')
+sys.modules['moto.emr.urls'] = __import__('src.emr.urls')
+del sys.modules['moto.emr.exceptions']
+sys.modules['moto.emr.exceptions'] = __import__('src.emr.exceptions')
+del sys.modules['moto.emr.models']
+sys.modules['moto.emr.models'] = __import__('src.emr.models')
+del sys.modules['moto.emr.utils']
+sys.modules['moto.emr.utils'] = __import__('src.emr.utils')
 
-reader_process = Process(target=read_task_queue, args=(process_queue, status_queue,))
-reader_process.daemon = True
-reader_process.start()
 
-server.main(['emr', '-H', '0.0.0.0', '-p3000'])
+if __name__ == "__main__":
+    reader_process = Process(target=read_task_queue, args=(FakeCluster.process_queue, FakeCluster.status_queue,))
+    reader_process.daemon = True
+    reader_process.start()
+    server.main(['emr', '-H', '0.0.0.0', '-p3000'])
