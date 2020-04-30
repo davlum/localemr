@@ -5,11 +5,6 @@ services:
       ports:
         - "8080:8080"
         - "7077:7077"
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-        interval: 3s
-        timeout: 3s
-        retries: 3
     emr:
       build: .
       ports:
@@ -20,6 +15,7 @@ services:
         - ~/.aws:/root/.aws
     livy:
       image: cloudiator/livy-server:melodic-stable
+      restart: always
       depends_on:
         - spark
       ports:
@@ -29,6 +25,5 @@ services:
         - SPARK_MASTER_PORT=7077
         - DEPLOY_MODE=client
       volumes:
-      - /tmp:/tmp
-
+        - ./config/log4j.properties:/opt/livy-0.5.0-incubating-bin/conf/log4j.properties
         

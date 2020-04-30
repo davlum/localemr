@@ -1,5 +1,7 @@
+import json
 import boto3
 from test.example_step import EXAMPLE_STEP
+from src.emr.models import EMRStepStates
 import time
 
 
@@ -29,9 +31,15 @@ def test_my_model_save():
     cluster_id = resp['JobFlowId']
 
     add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[EXAMPLE_STEP])
-    print(add_response)
     first_step_ip = add_response['StepIds'][0]
-    time.sleep(5)
-    resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-    print(resp)
-    raise ValueError('drrrr')
+    max_wait = 10
+    while max_wait != 0:
+        time.sleep(3)
+        resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
+        if resp['Step']['Status']['State'] == EMRStepStates.FAILED:
+            log = json.loads(resp['Step']['Status']['FailureDetails']['LogFile'])
+            assert log['log'][3] == "java.lang.ClassNotFoundException: com.company.org.Jar"
+            return
+        max_wait = max_wait - 1
+
+    raise ValueError("Test timed out and failed")

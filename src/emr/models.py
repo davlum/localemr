@@ -12,11 +12,18 @@ from .utils import random_instance_group_id, random_cluster_id, random_step_id
 from multiprocessing import Queue
 
 
+class ActionOnFailure:
+    TERMINATE_JOB_FLOW = 'TERMINATE_JOB_FLOW'
+    TERMINATE_CLUSTER = 'TERMINATE_CLUSTER'
+    CANCEL_AND_WAIT = 'CANCEL_AND_WAIT'
+    CONTINUE = 'CONTINUE'
+
+
 class FailureDetails:
-    def __init__(self):
-        self.reason = None
-        self.message = None
-        self.log_file = None
+    def __init__(self, reason=None, message=None, log_file=None):
+        self.reason = reason
+        self.message = message
+        self.log_file = log_file
 
     def to_dict(self):
         return {

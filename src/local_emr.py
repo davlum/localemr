@@ -1,40 +1,20 @@
-import json
-import requests
-from typing import List
-import boto3
-import tempfile
-from src.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
-from src.emr_to_livy import transform_emr_to_livy
-from src.emr.models import EMRStepStates
-from multiprocessing import Queue
 import time
 import pathlib
 import os
+import logging
+import traceback
+from datetime import datetime
+import pytz
+from typing import List
+import boto3
+import tempfile
+from copy import deepcopy
+from multiprocessing import Queue
 from botocore.errorfactory import ClientError
-
-
-LIVY_TERMINAL_STATES = ['success', 'error']
-
-LIVY_RUNNING_STATES = [
-   'not_started',
-   'starting',
-   'busy',
-   'idle',
-   'shutting_down',
-]
-
-LIVY_STATES = LIVY_TERMINAL_STATES + LIVY_RUNNING_STATES
-
-
-class Configuration:
-    def __init__(self, convert_s3_to_local=True, local_dir=None, livy_host='livy:8998'):
-        self.convert_s3_to_local = convert_s3_to_local
-        # If not specified temporary directories will be used
-        self.local_dir = local_dir
-        self.livy_host = livy_host
-
-
-CONF = Configuration()
+from src.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
+from src.livy.backend import send_step_to_livy
+from src.emr.models import EMRStepStates, FakeStep, FailureDetails
+from src.models import SparkResult, CONF
 
 
 def s3_key_exists(s3, bucket, key) -> bool:
@@ -52,49 +32,50 @@ def get_files_from_s3(local_dir_name: str, args: List[str]):
     for s3_path, local_path in extract_s3_files_from_step(local_dir_name, args):
         bucket, key = extract_s3_parts(s3_path)
         pathlib.Path(os.path.dirname(local_path)).mkdir(parents=True, exist_ok=True)
-        print(s3_path)
         if s3_key_exists(s3, bucket, key):
+            logging.info("s3://%s/%s exists, downloading", bucket, key)
             s3.download_file(bucket, key, local_path)
 
 
-def send_step_to_livy(cli_args: List[str]):
-    livy_step = transform_emr_to_livy(cli_args)
-    headers = {'Content-Type': 'application/json'}
-    r = requests.post(CONF.livy_host + '/batches', data=json.dumps(livy_step), headers=headers)
-    print(r.json())
-    batch_id = r.json()['id']
-    state = 'not_started'
-    while state not in LIVY_TERMINAL_STATES:
-        time.sleep(10)
-        r = requests.get(CONF.livy_host + '/batches/{}/state'.format(batch_id), headers=headers)
-        state = r.json()['state']
+def process_spark_command(cli_args: List[str]) -> SparkResult:
+    return send_step_to_livy(cli_args)
 
 
-def process_spark_command(cli_args: List[str]):
-    if True:
-        send_step_to_livy(cli_args)
+def make_step_terminal(step: FakeStep, failure_details: FailureDetails, state: EMRStepStates) -> FakeStep:
+    step = deepcopy(step)
+    step.failure_details = failure_details
+    step.state = state
+    step.end_datetime = datetime.now(pytz.utc)
+    return step
 
 
 def process_step(process_queue: Queue, status_queue: Queue):
-    step = process_queue.get()
+    step: FakeStep = process_queue.get()
     step.state = EMRStepStates.RUNNING
+    step.start()
     try:
         status_queue.put(step)
         cli_args = step.args
-        if CONF.convert_s3_to_local:
-            if CONF.local_dir is None:
-                with tempfile.TemporaryDirectory() as tmp_dir_name:
-                    get_files_from_s3(tmp_dir_name, cli_args)
-                    cli_args = convert_s3_to_local_path(tmp_dir_name, cli_args)
-                    process_spark_command(cli_args)
+        with tempfile.TemporaryDirectory() as tmp_dir_name:
+            dir_name = CONF.local_dir or tmp_dir_name
 
-            else:
-                get_files_from_s3(CONF.local_dir, cli_args)
-                cli_args = convert_s3_to_local_path(CONF.local_dir, cli_args)
-                process_spark_command(cli_args)
+            if CONF.fetch_from_s3:
+                get_files_from_s3(dir_name, cli_args)
+
+            if CONF.convert_s3_to_local:
+                cli_args = convert_s3_to_local_path(dir_name, cli_args)
+
+            spark_result = process_spark_command(cli_args)
+            step = make_step_terminal(step, spark_result.failure_details, spark_result.state)
+            status_queue.put(step)
+
     except Exception as e:
-        step.state = EMRStepStates.FAILED
-        step.failure_details.message = str(e.with_traceback(None))
+        failure_details = FailureDetails(
+            reason='Unknown Reason',
+            message=traceback.format_exc()
+        )
+        step = make_step_terminal(step, failure_details, EMRStepStates.FAILED)
+        logging.exception(e)
         status_queue.put(step)
 
 
