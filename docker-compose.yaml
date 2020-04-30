@@ -26,4 +26,3 @@ services:
         - DEPLOY_MODE=client
       volumes:
         - ./config/log4j.properties:/opt/livy-0.5.0-incubating-bin/conf/log4j.properties
-        
