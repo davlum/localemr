@@ -14,6 +14,6 @@ jobs:
     - name: Check running containers
       run: docker ps -a
     - name: Check logs
-      run: docker logs emr
+      run: docker-compose logs emr
     - name: Run test suite
-      run: docker exec emr pytest --skip-auth
+      run: docker-compose exec emr pytest
