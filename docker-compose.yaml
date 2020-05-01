@@ -12,7 +12,6 @@ services:
       volumes:
         - ./src:/home/app/src
         - ./test:/home/app/test
-        - ~/.aws:/root/.aws
     livy:
       image: cloudiator/livy-server:melodic-stable
       restart: always
