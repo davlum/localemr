@@ -9,19 +9,14 @@ services:
       build: .
       ports:
         - "3000:3000"
-      volumes:
-        - ./src:/home/app/src
-        - ./test:/home/app/test
     livy:
       image: cloudiator/livy-server:melodic-stable
       restart: always
-      depends_on:
-        - spark
       ports:
         - "8998:8998"
+      depends_on:
+        - spark
       environment:
         - SPARK_MASTER_ENDPOINT=spark
         - SPARK_MASTER_PORT=7077
         - DEPLOY_MODE=client
-      volumes:
-        - ./config/log4j.properties:/opt/livy-0.5.0-incubating-bin/conf/log4j.properties

@@ -10,10 +10,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build the docker-compose stack
-      run: docker-compose up -d
+      run: docker-compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
     - name: Check running containers
       run: docker ps -a
-    - name: Check logs
-      run: docker-compose logs emr
     - name: Run test suite
       run: docker-compose exec -T emr pytest

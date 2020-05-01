@@ -1,0 +1,10 @@
+version: '3'
+services:
+    emr:
+      volumes:
+        - ./src:/home/app/src
+        - ./test:/home/app/test
+        - ~/.aws:/root/.aws
+    livy:
+      volumes:
+        - ./config/log4j.properties:/opt/livy-0.5.0-incubating-bin/conf/log4j.properties
