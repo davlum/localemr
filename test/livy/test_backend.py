@@ -1,7 +1,7 @@
 import pytest
-from test.example_step import EXAMPLE_STEP
-import src.livy.backend as livy
-from src.livy.models import LivyRequestBody
+from test.fixtures.example_step import EXAMPLE_STEP
+import localemr.livy.backend as livy
+from localemr.livy.models import LivyRequestBody
 
 
 def test_from_dash_to_snake_case():
@@ -9,11 +9,6 @@ def test_from_dash_to_snake_case():
     assert livy.from_dash_to_snake_case('--executor-memory') == 'executor_memory'
     with pytest.raises(ValueError):
         livy.from_dash_to_snake_case('foobar')
-
-
-def test_from_snake_to_camel_case():
-    assert LivyRequestBody.from_snake_to_camel_case('executor_memory') == 'executorMemory'
-    assert LivyRequestBody.from_snake_to_camel_case('a_beautiful_day') == 'aBeautifulDay'
 
 
 def test_extract_conf_until_jar():

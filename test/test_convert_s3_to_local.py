@@ -1,6 +1,6 @@
 import pytest
-from test.example_step import EXAMPLE_STEP
-from src.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
+from test.fixtures.example_step import EXAMPLE_STEP
+from localemr.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
 
 cli_args = EXAMPLE_STEP['HadoopJarStep']['Args']
 
