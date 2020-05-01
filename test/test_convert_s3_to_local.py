@@ -6,9 +6,9 @@ cli_args = EXAMPLE_STEP['HadoopJarStep']['Args']
 
 
 def test_extract_s3_parts():
-    s3_path = 's3://adgear-data/hash/hourly/trader/exchange/2019-10-15/00'
+    s3_path = 's3://data/hash/hourly/trader/exchange/2019-10-15/00'
     bucket, key = extract_s3_parts(s3_path)
-    assert bucket == 'adgear-data'
+    assert bucket == 'data'
     assert key == 'hash/hourly/trader/exchange/2019-10-15/00'
     with pytest.raises(ValueError) as e:
         extract_s3_parts('foobar')
