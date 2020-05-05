@@ -15,7 +15,7 @@ def test_extract_conf_until_jar():
     cli_args = EXAMPLE_STEP['HadoopJarStep']['Args']
     assert livy.extract_conf_until_jar(cli_args[1:]).to_dict() == LivyRequestBody(
         class_name='com.company.org.Jar',
-        name='test',
+        name='test-1',
         num_executors=256,
         driver_memory='4G',
         executor_memory='30G',
@@ -24,7 +24,7 @@ def test_extract_conf_until_jar():
             'spark.driver.cores': '1',
             'spark.yarn.maxAppAttempts': '1'
         },
-        args= [
+        args=[
             '--output-path=s3://ccpa/delete',
             '--partitions=512',
             '--final-output-concurrency=256',

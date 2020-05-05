@@ -33,7 +33,7 @@ def test_convert_s3_to_local_path():
         '--class',
         'com.company.org.Jar',
         '--name',
-        'test',
+        'test-1',
         '--num-executors',
         '256',
         '--driver-memory',

@@ -8,7 +8,7 @@ EXAMPLE_STEP = {
             '--deploy-mode', 'cluster',
             '--master', 'yarn',
             '--class', 'com.company.org.Jar',
-            '--name', 'test',
+            '--name', 'test-1',
             '--num-executors', '256',
             '--driver-memory', '4G',
             '--executor-memory', '30G',
@@ -34,15 +34,12 @@ WORKING_STEP = {
             '--deploy-mode', 'cluster',
             '--master', 'yarn',
             '--class', 'com.oreilly.learningsparkexamples.mini.scala.WordCount',
-            '--name', 'test',
-            '--num-executors', '2',
-            '--driver-memory', '1G',
-            '--executor-memory', '1G',
+            '--name', 'test-2',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
-            's3://example-bucket/artifacts/word-count.jar',
-            'input.txt',
-            'output.txt',
+            'file:///tmp/files/word-count.jar',
+            '/tmp/files/input.txt',
+            '/tmp/files/output',
         ]
     }
 }
