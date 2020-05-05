@@ -2,7 +2,7 @@ version: '3'
 services:
     emr:
       volumes:
-        - ./src:/home/app/src
+        - ./localemr:/home/app/localemr
         - ./test:/home/app/test
         - ~/.aws:/root/.aws
     livy:

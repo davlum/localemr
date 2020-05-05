@@ -3,10 +3,10 @@ import time
 import requests
 import logging
 from typing import List
-from src.emr.models import FailureDetails, EMRStepStates
-from src.models import CONF, SparkResult
-from src.livy.exceptions import LivyError
-from src.livy.models import *
+from localemr.emr.models import FailureDetails, EMRStepStates
+from localemr.models import CONF, SparkResult
+from localemr.livy.exceptions import LivyError
+from localemr.livy.models import *
 
 
 def from_dash_to_snake_case(conf_key: str):

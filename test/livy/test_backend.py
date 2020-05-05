@@ -1,7 +1,7 @@
 import pytest
-from test.example_step import EXAMPLE_STEP
-import src.livy.backend as livy
-from src.livy.models import LivyRequestBody
+from test.fixtures.example_step import EXAMPLE_STEP
+import localemr.livy.backend as livy
+from localemr.livy.models import LivyRequestBody
 
 
 def test_from_dash_to_snake_case():
@@ -11,16 +11,11 @@ def test_from_dash_to_snake_case():
         livy.from_dash_to_snake_case('foobar')
 
 
-def test_from_snake_to_camel_case():
-    assert LivyRequestBody.from_snake_to_camel_case('executor_memory') == 'executorMemory'
-    assert LivyRequestBody.from_snake_to_camel_case('a_beautiful_day') == 'aBeautifulDay'
-
-
 def test_extract_conf_until_jar():
     cli_args = EXAMPLE_STEP['HadoopJarStep']['Args']
     assert livy.extract_conf_until_jar(cli_args[1:]).to_dict() == LivyRequestBody(
         class_name='com.company.org.Jar',
-        name='test',
+        name='test-1',
         num_executors=256,
         driver_memory='4G',
         executor_memory='30G',
@@ -29,7 +24,7 @@ def test_extract_conf_until_jar():
             'spark.driver.cores': '1',
             'spark.yarn.maxAppAttempts': '1'
         },
-        args= [
+        args=[
             '--output-path=s3://ccpa/delete',
             '--partitions=512',
             '--final-output-concurrency=256',

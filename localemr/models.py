@@ -1,4 +1,4 @@
-from src.emr.models import EMRStepStates, FailureDetails
+from localemr.emr.models import EMRStepStates, FailureDetails
 
 
 class SparkResult:

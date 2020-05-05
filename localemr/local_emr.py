@@ -11,10 +11,10 @@ import tempfile
 from copy import deepcopy
 from multiprocessing import Queue
 from botocore.errorfactory import ClientError
-from src.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
-from src.livy.backend import send_step_to_livy
-from src.emr.models import EMRStepStates, FakeStep, FailureDetails
-from src.models import SparkResult, CONF
+from localemr.convert_s3_to_local import extract_s3_parts, extract_s3_files_from_step, convert_s3_to_local_path
+from localemr.livy.backend import send_step_to_livy
+from localemr.emr.models import EMRStepStates, FakeStep, FailureDetails
+from localemr.models import SparkResult, CONF
 
 
 def s3_key_exists(s3, bucket, key) -> bool:

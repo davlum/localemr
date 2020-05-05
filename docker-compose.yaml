@@ -1,16 +1,11 @@
 version: '3'
 services:
-    spark:
-      image: bitnami/spark:2.4.4
-      ports:
-        - "8080:8080"
-        - "7077:7077"
     emr:
       build: .
       ports:
         - "3000:3000"
     livy:
-      image: cloudiator/livy-server:melodic-stable
+      image: davlum/livy:0.7.0-spark2.4.4
       restart: always
       ports:
         - "8998:8998"
@@ -20,3 +15,20 @@ services:
         - SPARK_MASTER_ENDPOINT=spark
         - SPARK_MASTER_PORT=7077
         - DEPLOY_MODE=client
+    spark:
+      image: bde2020/spark-master:2.4.4-hadoop2.7
+      container_name: spark
+      ports:
+        - "8080:8080"
+        - "7077:7077"
+      environment:
+        - INIT_DAEMON_STEP=setup_spark
+    spark-worker:
+      image: bde2020/spark-worker:2.4.4-hadoop2.7
+      container_name: spark-worker
+      depends_on:
+        - spark
+      ports:
+        - "8081:8081"
+      environment:
+        - "SPARK_MASTER=spark://spark:7077"
