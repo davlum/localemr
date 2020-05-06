@@ -5,7 +5,7 @@ services:
       ports:
         - "3000:3000"
     livy:
-      image: davlum/livy:0.7.0-spark2.4.4
+      image: davlum/livy:0.5.0-spark2.4.4
       restart: always
       ports:
         - "8998:8998"
