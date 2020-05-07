@@ -42,7 +42,7 @@ def test_run_step_with_jar():
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
         if resp['Step']['Status']['State'] == EMRStepStates.COMPLETED:
             result = pd.read_csv("/tmp/files/output/part-00000")
-            expected = pd.read_csv("/tmp/files/expected.csv")
+            expected = pd.read_csv("test/fixtures/expected.csv")
             assert set(map(tuple, result.values.tolist())) == set(map(tuple, expected.values.tolist()))
             return
         max_wait = max_wait - 1

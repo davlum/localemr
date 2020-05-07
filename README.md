@@ -4,15 +4,15 @@
 
 Based on the work from [spulec/moto](https://github.com/spulec/moto).
 
-A locally running service that resembles [AWS EMR](https://aws.amazon.com/emr/).
-Should not be used in any production environment whatsoever. The intent is to
+A locally running service that resembles [Elastic Map Reduce](https://aws.amazon.com/emr/).
+This should not be used in any production environment whatsoever. The intent is to
 facilitate local development.
 
 Currently requires [Docker](https://www.docker.com/) in order to bring up additional services, such as
 [Apache Livy](https://livy.incubator.apache.org/) and [Apache Spark](https://spark.apache.org/).
 
 Make sure AWS related environment variables are set in order to not alter your actual
-AWS infrastructure.
+Amazon infrastructure.
 
 ```.env
 AWS_ACCESS_KEY_ID=testing
