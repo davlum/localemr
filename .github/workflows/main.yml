@@ -13,5 +13,7 @@ jobs:
       run: docker-compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
     - name: Check running containers
       run: docker ps -a
+    - name: Install test dependencies
+      run:  docker-compose exec -T emr pip install -r requirements-dev.txt
     - name: Run test suite
       run: docker-compose exec -T emr pytest
