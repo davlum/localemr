@@ -41,7 +41,7 @@ def test_run_step_with_jar():
         time.sleep(3)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
         if resp['Step']['Status']['State'] == EMRStepStates.COMPLETED:
-            result = pd.read_csv("test/fixtures/output/part-00000")
+            result = pd.read_csv("/tmp/files/output/part-00000")
             expected = pd.read_csv("test/fixtures/expected.csv")
             assert set(map(tuple, result.values.tolist())) == set(map(tuple, expected.values.tolist()))
             return
