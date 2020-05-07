@@ -12,4 +12,8 @@ WORKDIR /home/app
 
 COPY . .
 
+RUN mkdir /tmp/files && \
+    cp test/fixtures/word-count.jar /tmp/files/ && \
+    cp test/fixtures/input.txt /tmp/files/
+
 CMD ["python", "main.py"]
