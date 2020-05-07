@@ -9,6 +9,7 @@ services:
       volumes:
         - livyfiles:/home/app/test/fixtures
         - ./localemr:/home/app/localemr
+        - ./requirements-dev.txt:/home/app/requirements-dev.txt
     livy:
       volumes:
         - livyfiles:/tmp/files
