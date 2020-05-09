@@ -15,5 +15,7 @@ jobs:
       run: docker ps -a
     - name: Install test dependencies
       run:  docker-compose exec -T emr pip install -r requirements-dev.txt
+    - name: Run flake8
+      run: docker-compose exec -T emr flake8 localemr test
     - name: Run test suite
       run: docker-compose exec -T emr pytest
