@@ -17,11 +17,11 @@ class LivyState:
 LIVY_TERMINAL_STATES = [LivyState.SUCCESS, LivyState.ERROR, LivyState.DEAD]
 
 LIVY_RUNNING_STATES = [
-   LivyState.NOT_STARTED,
-   LivyState.STARTING,
-   LivyState.BUSY,
-   LivyState.IDLE,
-   LivyState.SHUTTING_DOWN,
+    LivyState.NOT_STARTED,
+    LivyState.STARTING,
+    LivyState.BUSY,
+    LivyState.IDLE,
+    LivyState.SHUTTING_DOWN,
 ]
 
 LIVY_STATES = LIVY_TERMINAL_STATES + LIVY_RUNNING_STATES
@@ -29,7 +29,8 @@ LIVY_STATES = LIVY_TERMINAL_STATES + LIVY_RUNNING_STATES
 
 class LivyRequestBody:
     """
-    Reference: https://docs.cloudera.com/HDPDocuments/HDP3/HDP-3.1.0/running-spark-applications/content/livy_api_reference_for_batch_jobs.html
+    Reference:
+    https://docs.cloudera.com/HDPDocuments/HDP3/HDP-3.1.0/running-spark-applications/content/livy_api_reference_for_batch_jobs.html
     """
     def __init__(self,
                  file: str,

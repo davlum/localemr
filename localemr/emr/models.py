@@ -175,10 +175,7 @@ class FakeCluster(BaseModel):
         self.instance_group_ids = []
         self.master_instance_group_id = None
         self.core_instance_group_id = None
-        if (
-            "master_instance_type" in instance_attrs
-            and instance_attrs["master_instance_type"]
-        ):
+        if "master_instance_type" in instance_attrs and instance_attrs["master_instance_type"]:
             self.emr_backend.add_instance_groups(
                 self.id,
                 [
@@ -191,10 +188,7 @@ class FakeCluster(BaseModel):
                     }
                 ],
             )
-        if (
-            "slave_instance_type" in instance_attrs
-            and instance_attrs["slave_instance_type"]
-        ):
+        if "slave_instance_type" in instance_attrs and instance_attrs["slave_instance_type"]:
             self.emr_backend.add_instance_groups(
                 self.id,
                 [
@@ -427,7 +421,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if len(actions) <= start_idx + max_items
             else str(start_idx + max_items)
         )
-        return actions[start_idx : start_idx + max_items], marker
+        return actions[start_idx: start_idx + max_items], marker
 
     def list_clusters(
         self, cluster_states=None, created_after=None, created_before=None, marker=None
@@ -449,7 +443,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if len(clusters) <= start_idx + max_items
             else str(start_idx + max_items)
         )
-        return clusters[start_idx : start_idx + max_items], marker
+        return clusters[start_idx: start_idx + max_items], marker
 
     def list_instance_groups(self, cluster_id, marker=None):
         max_items = 50

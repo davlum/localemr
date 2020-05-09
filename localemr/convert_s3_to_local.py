@@ -35,4 +35,3 @@ def extract_s3_files_from_step(local_dir_name: str, emr_step: List[str]) -> List
 
 def convert_s3_to_local_path(local_dir_name: str, emr_step: List[str]) -> List[str]:
     return [replace_with_spark_fs(local_dir_name, v) for v in emr_step]
-
