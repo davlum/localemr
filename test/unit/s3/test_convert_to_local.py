@@ -25,23 +25,17 @@ def test_extract_s3_files_from_step():
 
 
 def test_convert_s3_to_local_path():
-    assert s3.convert_s3_to_local_path('/tmp/example', cli_args) == [
+    assert s3.convert_s3_to_local_path('/tmp/files', S3_STEP['HadoopJarStep']['Args']) == [
         '/usr/bin/spark-submit',
         '--deploy-mode', 'cluster',
         '--master', 'yarn',
-        '--class', 'com.company.org.Jar',
+        '--class', 'com.oreilly.learningsparkexamples.mini.scala.WordCount',
         '--name', 'test',
-        '--num-executors', '256',
-        '--driver-memory', '4G',
-        '--executor-memory', '30G',
         '--conf', 'spark.driver.cores=1',
         '--conf', 'spark.yarn.maxAppAttempts=1',
-        'file:///tmp/example/example-bucket/artifacts/jar-with-dependencies.jar',
-        '--output-path=file:///tmp/example/ccpa/delete',
-        '--partitions=512',
-        '--final-output-concurrency=256',
-        '--graphite-port=2003',
-        '--max-age-in-days=180',
+        'file:///tmp/files/bucket/tmp/files/word-count.jar',
+        'file:///tmp/files/bucket/key/2020-05/03/*/*.txt',
+        'file:///tmp/files/bucket/tmp/files/output'
     ]
 
 
