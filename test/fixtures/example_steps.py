@@ -43,3 +43,24 @@ WORKING_STEP = {
         ]
     }
 }
+
+
+S3_STEP = {
+    'Name': 'EMR Job',
+    'ActionOnFailure': 'CONTINUE',
+    'HadoopJarStep': {
+        'Jar': 'command-runner.jar',
+        'Args': [
+            '/usr/bin/spark-submit',
+            '--deploy-mode', 'cluster',
+            '--master', 'yarn',
+            '--class', 'com.oreilly.learningsparkexamples.mini.scala.WordCount',
+            '--name', 'test',
+            '--conf', 'spark.driver.cores=1',
+            '--conf', 'spark.yarn.maxAppAttempts=1',
+            's3://bucket/tmp/files/word-count.jar',
+            's3://bucket/key/2020-05/03/*/*.txt',
+            's3://bucket/tmp/files/output',
+        ]
+    }
+}

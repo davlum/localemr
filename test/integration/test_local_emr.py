@@ -1,4 +1,4 @@
-from test.fixtures.example_step import EXAMPLE_STEP, WORKING_STEP
+from test.fixtures.example_steps import EXAMPLE_STEP, WORKING_STEP
 from test.fixtures.util import get_client, make_cluster
 from localemr.emr.models import EMRStepStates
 import pandas as pd
