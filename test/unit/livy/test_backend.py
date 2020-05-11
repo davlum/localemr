@@ -1,5 +1,5 @@
 import pytest
-from test.fixtures.example_step import EXAMPLE_STEP
+from test.fixtures.example_steps import EXAMPLE_STEP
 import localemr.livy.backend as livy
 from localemr.livy.models import LivyRequestBody
 
@@ -19,13 +19,13 @@ def test_extract_conf_until_jar():
         num_executors=256,
         driver_memory='4G',
         executor_memory='30G',
-        file='s3://example-bucket/artifacts/jar-with-dependencies.jar',
+        file='/tmp/example-bucket/artifacts/jar-with-dependencies.jar',
         conf={
             'spark.driver.cores': '1',
             'spark.yarn.maxAppAttempts': '1'
         },
         args=[
-            '--output-path=s3://ccpa/delete',
+            '--output-path=/ccpa/delete',
             '--partitions=512',
             '--final-output-concurrency=256',
             '--graphite-port=2003',
