@@ -11,11 +11,12 @@ import boto3
 from localemr.s3.convert_to_local import get_files_from_s3, convert_s3_to_local_path
 from localemr.livy.backend import send_step_to_livy
 from localemr.emr.models import EMRStepStates, FakeStep, FailureDetails
-from localemr.models import SparkResult, CONF
+from localemr.models import SparkResult
+from localemr.config import Configuration
 
 
-def process_spark_command(cli_args: List[str]) -> SparkResult:
-    return send_step_to_livy(cli_args)
+def process_spark_command(config: Configuration, cli_args: List[str]) -> SparkResult:
+    return send_step_to_livy(config, cli_args)
 
 
 def make_step_terminal(step: FakeStep, failure_details: FailureDetails, state: EMRStepStates) -> FakeStep:
@@ -26,7 +27,7 @@ def make_step_terminal(step: FakeStep, failure_details: FailureDetails, state: E
     return step
 
 
-def process_step(process_queue: Queue, status_queue: Queue):
+def process_step(config: Configuration, process_queue: Queue, status_queue: Queue):
     step: FakeStep = process_queue.get()
     step.state = EMRStepStates.RUNNING
     step.start()
@@ -34,16 +35,16 @@ def process_step(process_queue: Queue, status_queue: Queue):
         status_queue.put(step)
         cli_args = step.args
         with tempfile.TemporaryDirectory() as tmp_dir_name:
-            dir_name = CONF.local_dir or tmp_dir_name
+            dir_name = config.local_dir or tmp_dir_name
 
-            if CONF.fetch_from_s3:
-                s3 = boto3.client('s3', endpoint_url=CONF.s3_host)
+            if config.fetch_from_s3:
+                s3 = boto3.client('s3', endpoint_url=config.s3_host)
                 get_files_from_s3(s3, dir_name, cli_args)
 
-            if CONF.convert_s3_to_local:
+            if config.convert_s3_to_local:
                 cli_args = convert_s3_to_local_path(dir_name, cli_args)
 
-            spark_result = process_spark_command(cli_args)
+            spark_result = process_spark_command(config, cli_args)
             step = make_step_terminal(step, spark_result.failure_details, spark_result.state)
             status_queue.put(step)
 
@@ -57,9 +58,9 @@ def process_step(process_queue: Queue, status_queue: Queue):
         status_queue.put(step)
 
 
-def read_task_queue(process_queue: Queue, status_queue: Queue):
+def read_task_queue(config: Configuration, process_queue: Queue, status_queue: Queue):
     while True:
         if process_queue.empty():
             time.sleep(2)
         else:
-            process_step(process_queue, status_queue)
+            process_step(config, process_queue, status_queue)

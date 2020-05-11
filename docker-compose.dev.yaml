@@ -10,6 +10,10 @@ services:
         - AWS_SECRET_ACCESS_KEY=testing
         - AWS_SECURITY_TOKEN=testing
         - AWS_SESSION_TOKEN=testing
+        - FETCH_FROM_S3=True
+        - CONVERT_S3_TO_LOCAL=True
+        - LOCAL_DIR=/tmp/localemr
+        - S3_HOST=http://s3:2000
     s3:
       image: motoserver/moto:latest
       command: ["s3", "-p2000"]
