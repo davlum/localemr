@@ -37,7 +37,7 @@ def process_step(process_queue: Queue, status_queue: Queue):
             dir_name = CONF.local_dir or tmp_dir_name
 
             if CONF.fetch_from_s3:
-                s3 = boto3.client('s3')
+                s3 = boto3.client('s3', endpoint_url=CONF.s3_host)
                 get_files_from_s3(s3, dir_name, cli_args)
 
             if CONF.convert_s3_to_local:

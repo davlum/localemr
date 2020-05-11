@@ -14,8 +14,8 @@ EXAMPLE_STEP = {
             '--executor-memory', '30G',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
-            's3://example-bucket/artifacts/jar-with-dependencies.jar',
-            '--output-path=s3://ccpa/delete',
+            '/tmp/example-bucket/artifacts/jar-with-dependencies.jar',
+            '--output-path=/ccpa/delete',
             '--partitions=512',
             '--final-output-concurrency=256',
             '--graphite-port=2003',
@@ -37,9 +37,9 @@ WORKING_STEP = {
             '--name', 'test',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
-            'file:///tmp/files/word-count.jar',
-            '/tmp/files/input.txt',
-            '/tmp/files/output',
+            'file:///tmp/localemr/word-count.jar',
+            '/tmp/localemr/input.txt',
+            '/tmp/localemr/output',
         ]
     }
 }
@@ -58,9 +58,16 @@ S3_STEP = {
             '--name', 'test',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
-            's3://bucket/tmp/files/word-count.jar',
+            # '--conf', 'spark.jars.packages=org.apache.hadoop:hadoop-aws:2.8.5',
+            # '--jars', "/root/.ivy2/jars/org.apache.hadoop_hadoop-aws-2.8.5.jar",
+            # '--jars', 'spark.jars.packages=com.amazonaws:aws-java-sdk:1.10.34',
+            # '--conf', 'spark.hadoop.fs.s3.access.key=TESTING',
+            # '--conf', 'spark.hadoop.fs.s3.secret.key=TESTING',
+            # '--conf', 'spark.hadoop.fs.s3.endpoint=http://s3:2000',
+            # '--conf', 'spark.hadoop.fs.s3.connection.ssl.enabled=false',
+            's3://bucket/tmp/localemr/word-count.jar',
             's3://bucket/key/2020-05/03/*/*.txt',
-            's3://bucket/tmp/files/output',
+            's3://bucket/tmp/localemr/output',
         ]
     }
 }

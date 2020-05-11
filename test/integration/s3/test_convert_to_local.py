@@ -1,10 +1,21 @@
+import time
+import boto3
+import pandas as pd
 from test.fixtures.util import get_client, make_cluster
 from localemr.emr.models import EMRStepStates
 from test.fixtures.example_steps import S3_STEP
-import time
 
 
-def test_run_step_no_jar():
+def test_run_step_with_s3():
+    conn = boto3.client('s3', endpoint_url="http://s3:2000")
+    bucket = 'bucket'
+    conn.create_bucket(Bucket=bucket)
+    conn.upload_file('test/fixtures/word-count.jar', bucket, 'tmp/localemr/word-count.jar')
+    conn.put_object(Bucket=bucket, Key='key/2020-05/03/02/part.txt', Body="hello goodbye")  # Will be returned
+    conn.put_object(Bucket=bucket, Key='key/2020-05/03/05/part.txt', Body="hello")  # Will be returned
+    conn.put_object(Bucket=bucket, Key='key/2020-05/02/02/part.txt', Body="goodbye")  # Won't be returned
+    conn.put_object(Bucket=bucket, Key='key/2020-05/03/08/part.gz', Body="foobar")  # Won't be returned
+
     emr = get_client()
     resp = make_cluster(emr)
 
@@ -16,9 +27,9 @@ def test_run_step_no_jar():
     while max_wait != 0:
         time.sleep(3)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        if resp['Step']['Status']['State'] == EMRStepStates.FAILED:
-            log = resp['Step']['Status']['FailureDetails']['LogFile']
-            assert "java.lang.ClassNotFoundException: com.company.org.Jar" in log
+        if resp['Step']['Status']['State'] == EMRStepStates.COMPLETED:
+            result = pd.read_csv("/tmp/localemr/bucket/tmp/localemr/output/part-00000", header=None)
+            assert set(map(tuple, result.values.tolist())) == {("goodbye", 1), ("hello", 2)}
             return
         max_wait = max_wait - 1
 

@@ -57,6 +57,7 @@ def post_livy_batch(data: LivyRequestBody) -> LivyBatchObject:
         resp.raise_for_status()
         return LivyBatchObject.from_dict(resp.json())
     except requests.exceptions.HTTPError as err:
+        logging.exception(resp.json())
         raise LivyError(err)
 
 
@@ -80,6 +81,7 @@ def get_batch_logs(batch_id) -> LivyBatchObject:
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.HTTPError as err:
+        logging.exception(resp.json())
         raise LivyError(err)
 
 

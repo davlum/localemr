@@ -11,8 +11,9 @@ class Configuration:
     def __init__(self,
                  fetch_from_s3=True,
                  convert_s3_to_local=True,
-                 local_dir='/tmp/files',
+                 local_dir='/tmp/localemr',
                  livy_host='http://livy:8998',
+                 s3_host='http://s3:2000',
                  max_fetch_from_s3='1GB'):
         self.fetch_from_s3 = fetch_from_s3
         self.convert_s3_to_local = convert_s3_to_local
@@ -20,6 +21,7 @@ class Configuration:
         self.local_dir = local_dir
         self.livy_host = livy_host
         self.max_fetch_from_s3 = max_fetch_from_s3
+        self.s3_host = s3_host
 
 
 CONF = Configuration()

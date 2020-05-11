@@ -2,10 +2,10 @@ import os
 import pytest
 import boto3
 from moto import mock_s3
-from test.fixtures.example_steps import EXAMPLE_STEP, S3_STEP
+from test.fixtures.example_steps import S3_STEP
 import localemr.s3.convert_to_local as s3
 
-cli_args = EXAMPLE_STEP['HadoopJarStep']['Args']
+cli_args = S3_STEP['HadoopJarStep']['Args']
 
 
 def test_extract_s3_parts():
@@ -19,13 +19,15 @@ def test_extract_s3_parts():
 
 
 def test_extract_s3_files_from_step():
-    assert s3.extract_s3_paths_from_step(cli_args) == [
-        ('example-bucket', 'artifacts/jar-with-dependencies.jar'), ('ccpa', 'delete')
-    ]
+    assert set(s3.extract_s3_paths_from_step(cli_args)) == {
+        ('bucket', 'tmp/localemr/word-count.jar'),
+        ('bucket', 'key/2020-05/03/*/*.txt'),
+        ('bucket', 'tmp/localemr/output'),
+    }
 
 
 def test_convert_s3_to_local_path():
-    assert s3.convert_s3_to_local_path('/tmp/files', S3_STEP['HadoopJarStep']['Args']) == [
+    assert s3.convert_s3_to_local_path('/tmp/localemr', S3_STEP['HadoopJarStep']['Args']) == [
         '/usr/bin/spark-submit',
         '--deploy-mode', 'cluster',
         '--master', 'yarn',
@@ -33,9 +35,9 @@ def test_convert_s3_to_local_path():
         '--name', 'test',
         '--conf', 'spark.driver.cores=1',
         '--conf', 'spark.yarn.maxAppAttempts=1',
-        'file:///tmp/files/bucket/tmp/files/word-count.jar',
-        'file:///tmp/files/bucket/key/2020-05/03/*/*.txt',
-        'file:///tmp/files/bucket/tmp/files/output'
+        'file:///tmp/localemr/bucket/tmp/localemr/word-count.jar',
+        'file:///tmp/localemr/bucket/key/2020-05/03/*/*.txt',
+        'file:///tmp/localemr/bucket/tmp/localemr/output'
     ]
 
 
@@ -99,14 +101,14 @@ def test_get_files_from_s3():
     conn = boto3.client('s3')
     bucket = 'bucket'
     conn.create_bucket(Bucket=bucket)
-    prefix = '/tmp/files'
-    conn.upload_file('test/fixtures/word-count.jar', bucket, 'tmp/files/word-count.jar')
+    prefix = '/tmp/localemr'
+    conn.upload_file('test/fixtures/word-count.jar', bucket, 'tmp/localemr/word-count.jar')
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/02/part.txt', Body="hello goodbye")  # Will be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/05/part.txt', Body="hello")  # Will be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/02/02/part.txt', Body="goodbye")  # Won't be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/08/part.gz', Body="foobar")  # Won't be returned
-    s3.get_files_from_s3(conn, '/tmp/files', S3_STEP['HadoopJarStep']['Args'])
-    assert os.path.exists(os.path.join(prefix, bucket, 'tmp/files/word-count.jar'))
+    s3.get_files_from_s3(conn, '/tmp/localemr', S3_STEP['HadoopJarStep']['Args'])
+    assert os.path.exists(os.path.join(prefix, bucket, 'tmp/localemr/word-count.jar'))
     assert os.path.exists(os.path.join(prefix, bucket, 'key/2020-05/03/02/part.txt'))
     assert os.path.exists(os.path.join(prefix, bucket, 'key/2020-05/03/05/part.txt'))
     assert not os.path.exists(os.path.join(prefix, bucket, 'key/2020-05/02/02/part.txt'))

@@ -69,9 +69,9 @@ step = {
             '/usr/bin/spark-submit',
             '--class', 'com.oreilly.learningsparkexamples.mini.scala.WordCount',
             '--name', 'test',
-            'file:///tmp/files/word-count.jar',
-            '/tmp/files/input.txt',
-            '/tmp/files/output',
+            'file:///tmp/localemr/word-count.jar',
+            '/tmp/localemr/input.txt',
+            '/tmp/localemr/output',
         ]
     }
 }

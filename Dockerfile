@@ -12,8 +12,8 @@ WORKDIR /home/app
 
 COPY . .
 
-RUN mkdir /tmp/files && \
-    mv test/fixtures/word-count.jar /tmp/files/ && \
-    mv test/fixtures/input.txt /tmp/files/
+RUN mkdir /tmp/localemr && \
+    mv test/fixtures/word-count.jar /tmp/localemr/ && \
+    mv test/fixtures/input.txt /tmp/localemr/
 
 CMD ["python", "main.py"]
