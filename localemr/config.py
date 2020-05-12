@@ -1,3 +1,4 @@
+import boto3
 import os
 
 
@@ -11,4 +12,6 @@ class Configuration:
         self.local_dir = os.environ.get('LOCAL_DIR', args.local_dir)
         self.livy_host = os.environ.get('LIVY_HOST', args.livy_host)
         self.max_fetch_from_s3 = os.environ.get('MAX_FETCH_FROM_S3', args.max_fetch_from_s3)
-        self.s3_host = os.environ.get('S3_HOST', args.s3_host)
+        self.livy_log_file_lines = os.environ.get('MAX_FETCH_FROM_S3', args.livy_log_file_lines)
+        if self.fetch_from_s3:
+            self.s3 = boto3.client('s3', endpoint_url=os.environ.get('S3_HOST', args.s3_host))

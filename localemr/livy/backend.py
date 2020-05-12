@@ -6,6 +6,7 @@ from typing import List
 from localemr.emr.models import FailureDetails, EMRStepStates
 from localemr.models import SparkResult
 from localemr.config import Configuration
+from xml.sax.saxutils import escape
 from localemr.livy.exceptions import LivyError
 from localemr.livy.models import *
 
@@ -73,9 +74,9 @@ def get_livy_batch(config: Configuration, batch_id) -> LivyBatchObject:
         raise LivyError(err)
 
 
-def get_batch_logs(config: Configuration, batch_id) -> LivyBatchObject:
+def get_batch_logs(config: Configuration, batch_id) -> dict:
     headers = {'Content-Type': 'application/json'}
-    params = {'size': 100, 'from': 0}
+    params = {'size': config.livy_log_file_lines, 'from': 0}
     try:
         resp = requests.get(config.livy_host + '/batches/{}/log'.format(batch_id), params=params, headers=headers)
         logging.info(resp.json())
@@ -108,20 +109,17 @@ def send_step_to_livy(config: Configuration, cli_args: List[str]) -> SparkResult
     while livy_batch.state not in LIVY_TERMINAL_STATES:
         time.sleep(5)
         livy_batch = get_livy_batch(config, livy_batch.id)
-
     if livy_batch.state == LivyState.SUCCESS:
         return SparkResult(
             EMRStepStates.COMPLETED,
             FailureDetails()
         )
-
     elif livy_batch.state in (LivyState.ERROR, LivyState.DEAD):
-
         return SparkResult(
             EMRStepStates.FAILED,
             FailureDetails(
                 reason='Unknown Error',
-                log_file=json.dumps(get_batch_logs(config, livy_batch.id)),
+                log_file=escape('\n'.join(get_batch_logs(config, livy_batch.id)['log'])),
             )
         )
     else:
