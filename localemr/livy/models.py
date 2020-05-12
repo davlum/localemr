@@ -31,6 +31,9 @@ class LivyRequestBody:
     """
     Reference:
     https://docs.cloudera.com/HDPDocuments/HDP3/HDP-3.1.0/running-spark-applications/content/livy_api_reference_for_batch_jobs.html
+
+    All the parameters that have to do with optimization (example num_executors) are stripped away as the job will run
+    with whatever resources are available.
     """
     def __init__(self,
                  file: str,
@@ -40,11 +43,6 @@ class LivyRequestBody:
                  jars: Optional[List[str]] = None,
                  py_files: Optional[List[str]] = None,
                  files: Optional[List[str]] = None,
-                 driver_memory: Optional[str] = None,
-                 driver_cores: Optional[int] = None,
-                 executor_memory: Optional[str] = None,
-                 executor_cores: Optional[int] = None,
-                 num_executors: Optional[int] = None,
                  archives: Optional[List[str]] = None,
                  queue: Optional[str] = None,
                  name: Optional[str] = None,
@@ -57,11 +55,6 @@ class LivyRequestBody:
         self.jars = jars.split(',') if isinstance(jars, str) else jars
         self.py_files = py_files.split(',') if isinstance(py_files, str) else py_files
         self.files = files.split(',') if isinstance(files, str) else files
-        self.driver_memory = driver_memory
-        self.driver_cores = int(driver_cores) if isinstance(driver_cores, str) else driver_cores
-        self.executor_memory = executor_memory
-        self.executor_cores = int(executor_cores) if isinstance(executor_cores, str) else executor_cores
-        self.num_executors = int(num_executors) if isinstance(num_executors, str) else num_executors
         self.archives = archives.split(',') if isinstance(archives, str) else archives
         self.queue = queue
         self.name = name

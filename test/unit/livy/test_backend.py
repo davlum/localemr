@@ -16,9 +16,6 @@ def test_extract_conf_until_jar():
     assert livy.extract_conf_until_jar(cli_args[1:]).to_dict() == LivyRequestBody(
         class_name='com.company.org.Jar',
         name='test',
-        num_executors=256,
-        driver_memory='4G',
-        executor_memory='30G',
         file='/tmp/example-bucket/artifacts/jar-with-dependencies.jar',
         conf={
             'spark.driver.cores': '1',

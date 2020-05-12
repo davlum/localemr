@@ -30,10 +30,12 @@ if __name__ == "__main__":
     livy_host_help = 'The host where the Apache Livy server is running'
     parser.add_argument('-l', '--livy-host', help=livy_host_help, default='http://livy:8998')
     parser.add_argument('-s', '--s3-host', help='The host where the S3 endpoint is', default=None)
-    max_fetch_help = 'Max number of bytes to fetch from S3'
-    parser.add_argument('-m', '--max-fetch-from-s3', help=max_fetch_help, default=100000, type=int)
+    max_fetch_help = 'Max number of files to fetch from S3'
+    parser.add_argument('-m', '--max-fetch-from-s3', help=max_fetch_help, default=5, type=int)
     local_dir_help = 'Where to download the S3 files to. If empty then a temp dir is used.'
     parser.add_argument('-d', '--local-dir', help=local_dir_help, default=None)
+    livy_log_file_help = "Number of log file lines to return in the response"
+    parser.add_argument('-g', '--livy-log-file-lines', help=livy_log_file_help, default=100, type=int)
 
     args = parser.parse_args()
     conf = Configuration(args)

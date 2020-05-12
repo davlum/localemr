@@ -7,7 +7,7 @@ from typing import List
 import tempfile
 from copy import deepcopy
 from multiprocessing import Queue
-import boto3
+from xml.sax.saxutils import escape
 from localemr.s3.convert_to_local import get_files_from_s3, convert_s3_to_local_path
 from localemr.livy.backend import send_step_to_livy
 from localemr.emr.models import EMRStepStates, FakeStep, FailureDetails
@@ -34,12 +34,11 @@ def process_step(config: Configuration, process_queue: Queue, status_queue: Queu
     try:
         status_queue.put(step)
         cli_args = step.args
-        with tempfile.TemporaryDirectory() as tmp_dir_name:
+        with tempfile.TemporaryDirectory(prefix='/tmp/localemr/') as tmp_dir_name:
             dir_name = config.local_dir or tmp_dir_name
 
             if config.fetch_from_s3:
-                s3 = boto3.client('s3', endpoint_url=config.s3_host)
-                get_files_from_s3(s3, dir_name, cli_args)
+                get_files_from_s3(config, dir_name, cli_args)
 
             if config.convert_s3_to_local:
                 cli_args = convert_s3_to_local_path(dir_name, cli_args)
@@ -51,7 +50,7 @@ def process_step(config: Configuration, process_queue: Queue, status_queue: Queu
     except Exception as e:
         failure_details = FailureDetails(
             reason='Unknown Reason',
-            message=traceback.format_exc()
+            message=escape(traceback.format_exc())
         )
         step = make_step_terminal(step, failure_details, EMRStepStates.FAILED)
         logging.exception(e)
