@@ -25,6 +25,4 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: davlum/localemr
-        tags:
-        - latest
-        - ${GITHUB_REF}
+        tags: latest
