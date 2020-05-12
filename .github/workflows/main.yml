@@ -19,3 +19,13 @@ jobs:
       run: docker-compose exec -T emr flake8 localemr test
     - name: Run test suite
       run: docker-compose exec -T emr pytest
+    - name: Push to Dockerhub
+      uses: docker/build-push-action@v1
+#      if: ${{ github.event_name == 'release' }}
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        repository: davlum/localemr
+        tags:
+        - latest
+        - ${GITHUB_REF}
