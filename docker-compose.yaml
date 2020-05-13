@@ -11,31 +11,9 @@ services:
       restart: always
       ports:
         - "8998:8998"
-      depends_on:
-        - spark
       environment:
-        - SPARK_MASTER_ENDPOINT=spark
-        - SPARK_MASTER_PORT=7077
+        - SPARK_MASTER=local[*]
         - DEPLOY_MODE=client
-      volumes:
-        - livyfiles:/tmp/localemr
-    spark:
-      image: bde2020/spark-master:2.4.4-hadoop2.7
-      ports:
-        - "8080:8080"
-        - "7077:7077"
-      environment:
-        - INIT_DAEMON_STEP=setup_spark
-      volumes:
-        - livyfiles:/tmp/localemr
-    spark-worker:
-      image: bde2020/spark-worker:2.4.4-hadoop2.7
-      depends_on:
-        - spark
-      ports:
-        - "8081:8081"
-      environment:
-        - "SPARK_MASTER=spark://spark:7077"
       volumes:
         - livyfiles:/tmp/localemr
 
