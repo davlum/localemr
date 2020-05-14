@@ -120,7 +120,7 @@ def test_get_files_from_s3():
     mock_config = MockConfig(conn)
     conn.create_bucket(Bucket=bucket)
     prefix = '/tmp/localemr'
-    conn.upload_file('test/fixtures/word-count.jar', bucket, 'tmp/localemr/word-count.jar')
+    conn.upload_file('/tmp/localemr/word-count.jar', bucket, 'tmp/localemr/word-count.jar')
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/02/part.txt', Body="hello goodbye")  # Will be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/05/part.txt', Body="hello")  # Will be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/02/02/part.txt', Body="goodbye")  # Won't be returned

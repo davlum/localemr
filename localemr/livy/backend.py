@@ -3,8 +3,7 @@ import time
 import requests
 import logging
 from typing import List
-from localemr.emr.models import FailureDetails, EMRStepStates
-from localemr.models import SparkResult
+from localemr.models import SparkResult, FailureDetails, EMRStepStates
 from localemr.config import Configuration
 from xml.sax.saxutils import escape
 from localemr.livy.exceptions import LivyError

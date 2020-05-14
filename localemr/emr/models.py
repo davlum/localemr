@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
+
 
 import pytz
 from typing import List
@@ -9,38 +9,20 @@ from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError
 from .utils import random_instance_group_id, random_cluster_id, random_step_id
-from multiprocessing import Queue
 
-
-class ActionOnFailure:
-    TERMINATE_JOB_FLOW = 'TERMINATE_JOB_FLOW'
-    TERMINATE_CLUSTER = 'TERMINATE_CLUSTER'
-    CANCEL_AND_WAIT = 'CANCEL_AND_WAIT'
-    CONTINUE = 'CONTINUE'
-
-
-class FailureDetails:
-    def __init__(self, reason=None, message=None, log_file=None):
-        self.reason = reason
-        self.message = message
-        self.log_file = log_file
-
-    def to_dict(self):
-        return {
-            'Reason': self.reason,
-            'Message': self.message,
-            'LogFile': self.log_file,
-        }
-
-
-class EMRStepStates:
-    PENDING = 'PENDING          '
-    CANCEL_PENDING = 'CANCEL_PENDING'
-    RUNNING = 'RUNNING'
-    COMPLETED = 'COMPLETED'
-    CANCELLED = 'CANCELLED'
-    FAILED = 'FAILED'
-    INTERRUPTED = 'INTERRUPTED'
+import time
+import logging
+import traceback
+import tempfile
+from copy import deepcopy
+from multiprocessing import Queue, Process
+from xml.sax.saxutils import escape
+from localemr.s3.convert_to_local import get_files_from_s3, convert_s3_to_local_path
+from localemr.livy.backend import send_step_to_livy
+from localemr.models import SparkResult
+from localemr.config import Configuration
+from localemr.models import EMRStepStates, FailureDetails
+from localemr.config import config
 
 
 class FakeApplication(BaseModel):
@@ -127,9 +109,6 @@ class FakeStep(BaseModel):
 
 
 class FakeCluster(BaseModel):
-
-    process_queue = Queue()
-    status_queue = Queue()
 
     def __init__(
         self,
@@ -244,6 +223,9 @@ class FakeCluster(BaseModel):
         if self.steps:
             self.steps[0].start()
 
+        self.process_queue = Queue()
+        self.status_queue = Queue()
+
     @property
     def instance_groups(self):
         return self.emr_backend.get_instance_groups(self.instance_group_ids)
@@ -332,13 +314,67 @@ class FakeCluster(BaseModel):
     def set_visibility(self, visibility):
         self.visible_to_all_users = visibility
 
+    @staticmethod
+    def process_spark_command(config: Configuration, cli_args: List[str]) -> SparkResult:
+        return send_step_to_livy(config, cli_args)
+
+    @staticmethod
+    def make_step_terminal(step: FakeStep, failure_details: FailureDetails, state: EMRStepStates) -> FakeStep:
+        step = deepcopy(step)
+        step.failure_details = failure_details
+        step.state = state
+        step.end_datetime = datetime.now(pytz.utc)
+        return step
+
+    @staticmethod
+    def process_step(config: Configuration, process_queue: Queue, status_queue: Queue):
+        step: FakeStep = process_queue.get()
+        step.state = EMRStepStates.RUNNING
+        step.start()
+        try:
+            status_queue.put(step)
+            cli_args = step.args
+            with tempfile.TemporaryDirectory(prefix='/tmp/localemr/') as tmp_dir_name:
+                dir_name = config.local_dir or tmp_dir_name
+
+                if config.fetch_from_s3:
+                    get_files_from_s3(config, dir_name, cli_args)
+
+                if config.convert_s3_to_local:
+                    cli_args = convert_s3_to_local_path(dir_name, cli_args)
+
+                spark_result = FakeCluster.process_spark_command(config, cli_args)
+                step = FakeCluster.make_step_terminal(step, spark_result.failure_details, spark_result.state)
+                status_queue.put(step)
+
+        except Exception as e:
+            failure_details = FailureDetails(
+                reason='Unknown Reason',
+                message=escape(traceback.format_exc())
+            )
+            step = FakeCluster.make_step_terminal(step, failure_details, EMRStepStates.FAILED)
+            logging.exception(e)
+            status_queue.put(step)
+
+    @staticmethod
+    def read_task_queue(config: Configuration, process_queue: Queue, status_queue: Queue):
+        while True:
+            if process_queue.empty():
+                time.sleep(2)
+            else:
+                FakeCluster.process_step(config, process_queue, status_queue)
+
 
 class ElasticMapReduceBackend(BaseBackend):
+
     def __init__(self, region_name):
         super(ElasticMapReduceBackend, self).__init__()
         self.region_name = region_name
         self.clusters = {}
         self.instance_groups = {}
+        self.process_queue = Queue()
+        self.status_queue = Queue()
+        self.config = config
 
     def reset(self):
         region_name = self.region_name
@@ -488,7 +524,28 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster.remove_tags(tag_keys)
 
     def run_job_flow(self, **kwargs):
-        return FakeCluster(self, **kwargs)
+        if self.config.dynamic_clusters:
+            fake_cluster = FakeCluster(self, **kwargs)
+            # reader_process = Process(target=read_task_queue,
+            #                          args=(conf, FakeCluster.process_queue, FakeCluster.status_queue,))
+            # reader_process.daemon = True
+            # reader_process.start()
+            # self.process_queue.put(fake)
+            pass
+        else:
+            fake_cluster = FakeCluster(self, **kwargs)
+            step_reader_process = Process(
+                target=FakeCluster.read_task_queue,
+                args=(
+                    self.config,
+                    fake_cluster.process_queue,
+                    fake_cluster.status_queue,
+                )
+            )
+            step_reader_process.daemon = True
+            step_reader_process.start()
+
+        return fake_cluster
 
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):
         for job_flow_id in job_flow_ids:
