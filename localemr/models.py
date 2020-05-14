@@ -12,7 +12,7 @@ class FailureDetails:
         }
 
 
-class EMRStepStates:
+class EmrStepState:
     PENDING = 'PENDING          '
     CANCEL_PENDING = 'CANCEL_PENDING'
     RUNNING = 'RUNNING'
@@ -23,7 +23,7 @@ class EMRStepStates:
 
 
 class SparkResult:
-    def __init__(self, state: EMRStepStates, failure_details: FailureDetails):
+    def __init__(self, state: EmrStepState, failure_details: FailureDetails):
         self.state = state
         self.failure_details = failure_details
 
@@ -33,6 +33,16 @@ class ActionOnFailure:
     TERMINATE_CLUSTER = 'TERMINATE_CLUSTER'
     CANCEL_AND_WAIT = 'CANCEL_AND_WAIT'
     CONTINUE = 'CONTINUE'
+
+
+class EmrClusterState:
+    STARTING = 'STARTING'
+    WAITING = 'WAITING'
+    BOOTSTRAPPING = 'BOOTSTRAPPING'
+    RUNNING = 'RUNNING'
+    TERMINATING = 'TERMINATING'
+    TERMINATED = 'TERMINATED'
+    TERMINATED_WITH_ERRORS = 'TERMINATED_WITH_ERRORS'
 
 
 EMR_VERSION_TO_APPLICATION_VERSION = {

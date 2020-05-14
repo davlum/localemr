@@ -7,16 +7,6 @@ services:
       - "3000:3000"
     volumes:
       - localemr:/tmp/localemr
-  livy:
-    image: davlum/livy:0.5.0-spark2.4.4
-    restart: always
-    ports:
-      - "8998:8998"
-    environment:
-      - SPARK_MASTER=local[*]
-      - DEPLOY_MODE=client
-    volumes:
-      - localemr:/tmp/localemr
 
 volumes:
   localemr: {}

@@ -2,7 +2,7 @@ import time
 import boto3
 import pandas as pd
 from test.fixtures.util import get_client, make_cluster
-from localemr.emr.models import EMRStepStates
+from localemr.emr.models import EmrStepState
 from test.fixtures.example_steps import S3_STEP
 
 
@@ -25,9 +25,9 @@ def test_run_step_with_s3():
     first_step_ip = add_response['StepIds'][0]
     max_wait = 10
     while max_wait != 0:
-        time.sleep(3)
+        time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        if resp['Step']['Status']['State'] == EMRStepStates.COMPLETED:
+        if resp['Step']['Status']['State'] == EmrStepState.COMPLETED:
             result = pd.read_csv("/tmp/localemr/bucket/tmp/localemr/output/part-00000", header=None)
             assert set(map(tuple, result.values.tolist())) == {("goodbye", 1), ("hello", 2)}
             return
