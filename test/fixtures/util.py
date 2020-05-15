@@ -9,10 +9,10 @@ def get_client():
     )
 
 
-def make_cluster(emr):
+def make_cluster(emr, release_label='emr-5.29.0'):
     return emr.run_job_flow(
         Name="log-etl-dev",
-        ReleaseLabel='emr-5.29.0',
+        ReleaseLabel=release_label,
         Instances={
             'MasterInstanceType': 'm4.xlarge',
             'SlaveInstanceType': 'm4.xlarge',

@@ -1,13 +1,13 @@
 from test.fixtures.example_steps import EXAMPLE_STEP, WORKING_STEP
 from test.fixtures.util import get_client, make_cluster
-from localemr.emr.models import EMRStepStates
+from localemr.emr.models import EmrStepState
 import pandas as pd
 import time
 
 
 def test_run_step_no_jar():
     emr = get_client()
-    resp = make_cluster(emr)
+    resp = make_cluster(emr, 'emr-5.7.0')
 
     cluster_id = resp['JobFlowId']
 
@@ -15,9 +15,9 @@ def test_run_step_no_jar():
     first_step_ip = add_response['StepIds'][0]
     max_wait = 10
     while max_wait != 0:
-        time.sleep(3)
+        time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        if resp['Step']['Status']['State'] == EMRStepStates.FAILED:
+        if resp['Step']['Status']['State'] == EmrStepState.FAILED:
             log = resp['Step']['Status']['FailureDetails']['LogFile']
             assert "java.lang.ClassNotFoundException: com.company.org.Jar" in log
             return
@@ -37,9 +37,9 @@ def test_run_step_with_jar():
     first_step_ip = add_response['StepIds'][0]
     max_wait = 20
     while max_wait != 0:
-        time.sleep(3)
+        time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        if resp['Step']['Status']['State'] == EMRStepStates.COMPLETED:
+        if resp['Step']['Status']['State'] == EmrStepState.COMPLETED:
             result = pd.read_csv("/tmp/localemr/output/part-00000", header=None)
             expected = pd.read_csv("test/fixtures/expected.csv", header=None)
             assert set(map(tuple, result.values.tolist())) == set(map(tuple, expected.values.tolist()))

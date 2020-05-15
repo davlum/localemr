@@ -1,25 +1,19 @@
 version: '3'
 services:
-    emr:
-      volumes:
-        - ./localemr:/home/app/localemr
-        - ./test:/home/app/test
-#        - ~/.aws:/root/.aws
-      environment:
-        - AWS_ACCESS_KEY_ID=testing
-        - AWS_SECRET_ACCESS_KEY=testing
-        - AWS_SECURITY_TOKEN=testing
-        - AWS_SESSION_TOKEN=testing
-        - FETCH_FROM_S3=True
-        - CONVERT_S3_TO_LOCAL=True
-        - LOCAL_DIR=/tmp/localemr
-        - S3_HOST=http://s3:2000
-    s3:
-      image: motoserver/moto:latest
-      command: ["s3", "-p2000"]
-      ports:
-        - "2000:2000"
-
-    livy:
-      volumes:
-        - ./config/log4j.properties:/opt/livy-0.5.0-incubating-bin/conf/log4j.properties
+  localemr:
+    volumes:
+      - ./:/opt/localemr
+#      - ~/.aws:/root/.aws
+    environment:
+      - AWS_ACCESS_KEY_ID=testing
+      - AWS_SECRET_ACCESS_KEY=testing
+      - AWS_SECURITY_TOKEN=testing
+      - AWS_SESSION_TOKEN=testing
+      - FETCH_FROM_S3=True
+      - CONVERT_S3_TO_LOCAL=True
+      - S3_HOST=http://s3:2000
+  s3:
+    image: motoserver/moto:latest
+    command: ["s3", "-p2000"]
+    ports:
+      - "2000:2000"
