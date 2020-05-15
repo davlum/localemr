@@ -6,7 +6,4 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - localemr:/tmp/localemr
-
-volumes:
-  localemr: {}
+      - /var/run/docker.sock:/var/run/docker.sock

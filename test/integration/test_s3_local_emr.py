@@ -1,8 +1,9 @@
 import time
 import boto3
+from io import StringIO
 import pandas as pd
 from test.fixtures.util import get_client, make_cluster
-from localemr.emr.models import EmrStepState
+from localemr.models import EMR_STEP_TERMINAL_STATES
 from test.fixtures.example_steps import S3_STEP
 
 
@@ -19,7 +20,7 @@ def test_run_step_with_s3():
     emr = get_client()
     resp = make_cluster(emr)
 
-    cluster_id = resp['JobFlowId']
+    cluster_id = resp["JobFlowId"]
 
     add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[S3_STEP])
     first_step_ip = add_response['StepIds'][0]
@@ -27,8 +28,9 @@ def test_run_step_with_s3():
     while max_wait != 0:
         time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        if resp['Step']['Status']['State'] == EmrStepState.COMPLETED:
-            result = pd.read_csv("/tmp/localemr/bucket/tmp/localemr/output/part-00000", header=None)
+        if resp['Step']['Status']['State'] in EMR_STEP_TERMINAL_STATES:
+            obj = conn.get_object(Bucket=bucket, Key="tmp/localemr/output/part-00000")
+            result = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')), header=None)
             assert set(map(tuple, result.values.tolist())) == {("goodbye", 1), ("hello", 2)}
             return
         max_wait = max_wait - 1

@@ -1,4 +1,4 @@
-import boto3
+import docker
 import os
 
 
@@ -9,35 +9,27 @@ def is_true(bool_thing) -> bool:
 class Configuration:
 
     def __init__(self):
-        # If true, will fetch files with an S3 prefix. Requires authentication.
-        self.fetch_from_s3 = is_true(os.environ.get('FETCH_FROM_S3', False))
-        #  'If true, converts any paths on a submitted step from S3 to local directories.'
-        self.convert_s3_to_local = is_true(os.environ.get('CONVERT_S3_TO_LOCAL', False))
-        # Where the files should be stored
-        self.local_dir = os.environ.get('LOCAL_DIR', '/tmp/localemr/')
-        # Whether to use temporary directories
-        self.use_tmp_dir = os.environ.get('USE_TMP_DIR', False)
-        # If true dynamically bring up the local emr clusters
-        # TODO: There is no difference between dynamic and static clusters.
-        # Static clusters are just containers that are brought up at the same time as the localemr container
-        # Maybe specify these clusters in a parseable env var or conf file
-        self.dynamic_clusters = is_true(os.environ.get('DYNAMIC_CLUSTERS', False))
-        # The host where the Apache Livy server is running, only relevant when DYNAMIC_CLUSTERS=False
-        self.emr_host = os.environ.get('EMR_HOST', 'livy')
-        if self.dynamic_clusters:
-            self.emr_host = ''
-        # Max number of files to fetch from S3
-        self.max_fetch_from_s3 = int(os.environ.get('MAX_FETCH_FROM_S3', 5))
+        # If true, adds the necessary configuration to use a mocked instance of S3
+        # based on https://github.com/sumitsu/s3_mocktest_demo
+        self.convert_to_mock_s3 = is_true(os.environ.get('CONVERT_TO_MOCK_S3', True))
         # Number of log file lines to return in the response
-        self.livy_log_file_lines = int(os.environ.get('MAX_FETCH_FROM_S3', 100))
-        # TODO: This should be a separate service ro-s3
-        if self.fetch_from_s3:
-            # The host where the S3 endpoint is
-            self.s3 = boto3.client('s3', endpoint_url=os.environ.get('S3_HOST', None))
-
+        self.livy_log_file_lines = int(os.environ.get('LIVY_LOG_FILE_LINES', 100))
+        # Which directories livy can read files from
+        # Default is extremely permissive as this is intended for development
+        self.local_dir_whitelist = os.environ.get('LOCAL_DIR_WHITELIST', '/')
+        # The host where the S3 endpoint is
+        self.s3_endpoint = os.environ.get('S3_ENDPOINT', None)
+        # docker base url
+        docker_base_url = os.environ.get('DOCKER_BASE_URL', 'unix://var/run/docker.sock')
+        self.client = docker.DockerClient(base_url=docker_base_url)
+        # The container name of the localemr container
         self.localemr_container_name = os.environ.get('LOCALEMR_CONTAINER_NAME', 'localemr')
-        # TODO: Volumes shouldn't matter to the end user so figure out a way to get rid of this
-        self.localemr_volume_name = os.environ.get('LOCALEMR_VOLUME_NAME', 'localemr')
+        # TODO: This feature
+        # # a comma separated string of the form <cluster_name>:<emr_release_label>,...
+        # # example;
+        # #       cluster-1:emr-5.29.0,cluster-2:emr-5.24.0
+        # unparsed_boot_clusters = os.environ.get('BOOT_CLUSTER_LIST', '')
+        # self.boot_clusters = list(map(lambda x: tuple(x.split(':')), unparsed_boot_clusters.split(',')))
 
 
 configuration = Configuration()

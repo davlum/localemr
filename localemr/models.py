@@ -13,13 +13,21 @@ class FailureDetails:
 
 
 class EmrStepState:
-    PENDING = 'PENDING          '
+    PENDING = 'PENDING'
     CANCEL_PENDING = 'CANCEL_PENDING'
     RUNNING = 'RUNNING'
     COMPLETED = 'COMPLETED'
     CANCELLED = 'CANCELLED'
     FAILED = 'FAILED'
     INTERRUPTED = 'INTERRUPTED'
+
+
+EMR_STEP_TERMINAL_STATES = [
+    EmrStepState.FAILED,
+    EmrStepState.COMPLETED,
+    EmrStepState.CANCELLED,
+    EmrStepState.INTERRUPTED
+]
 
 
 class SparkResult:
@@ -45,7 +53,7 @@ class EmrClusterState:
     TERMINATED_WITH_ERRORS = 'TERMINATED_WITH_ERRORS'
 
 
-EMR_VERSION_TO_APPLICATION_VERSION = {
+EMR_TO_APPLICATION_VERSION = {
     '5.0.0': {'Spark': '2.0.0'},
     '5.0.3': {'Spark': '2.0.1'},
     '5.2.0': {'Spark': '2.0.2'},

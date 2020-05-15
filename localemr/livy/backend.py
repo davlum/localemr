@@ -1,3 +1,4 @@
+import re
 import json
 import time
 import requests
@@ -60,7 +61,6 @@ def post_livy_batch(hostname: str, data: LivyRequestBody) -> LivyBatchObject:
         resp.raise_for_status()
         return LivyBatchObject.from_dict(resp.json())
     except requests.exceptions.HTTPError as err:
-        logging.exception(resp.json())
         raise LivyError(err)
 
 
@@ -84,7 +84,6 @@ def get_batch_logs(config: Configuration, hostname: str, batch_id) -> dict:
         resp.raise_for_status()
         return resp.json()
     except requests.exceptions.HTTPError as err:
-        logging.exception(resp.json())
         raise LivyError(err)
 
 
@@ -95,6 +94,39 @@ def wait_for_cluster(hostname: str):
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     session.get(hostname)
+
+
+def convert_s3_to_s3a_path(emr_step: List[str]) -> List[str]:
+    return [re.sub(r's3://|s3n://', 's3a://', v) for v in emr_step]
+
+
+def add_mock_s3_conf(config: Configuration, livy_request_body: LivyRequestBody) -> LivyRequestBody:
+    """
+    Parameters
+    ----------
+    config : The Configuration object
+    livy_request_body : The Request being made to Livy
+
+    Returns
+    -------
+    The Livy Request enhanced with the configuration necessary to use a mock S3 instance.
+    From https://github.com/sumitsu/s3_mocktest_demo
+    """
+    mock_s3_config = {
+        'spark.hadoop.fs.s3a.impl': 'org.apache.hadoop.fs.s3a.S3AFileSystem',
+        'spark.hadoop.fs.s3a.s3.client.factory.impl': 'dev.sumitsu.s3mocktest.NonChunkedDefaultS3ClientFactory',
+        'spark.hadoop.fs.s3a.endpoint': config.s3_endpoint,
+        'spark.hadoop.fs.s3a.access.key': 'testing',
+        'spark.hadoop.fs.s3a.secret.key': 'testing',
+        'spark.hadoop.fs.s3a.path.style.access': 'true',
+        'spark.hadoop.fs.s3a.multiobjectdelete.enable': 'false',
+        'spark.hadoop.fs.s3a.change.detection.version.required': 'false',
+    }
+    if livy_request_body.conf:
+        livy_request_body.conf = {**livy_request_body.conf, **mock_s3_config}
+    else:
+        livy_request_body.conf = mock_s3_config
+    return livy_request_body
 
 
 def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str]) -> SparkResult:
@@ -115,8 +147,12 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
     https://docs.aws.amazon.com/emr/latest/APIReference/API_FailureDetails.html
 
     """
-    wait_for_cluster(hostname)
+    if config.convert_to_mock_s3:
+        cli_args = convert_s3_to_s3a_path(cli_args)
     livy_step = transform_emr_to_livy(cli_args)
+    if config.convert_to_mock_s3:
+        livy_step = add_mock_s3_conf(config, livy_step)
+    wait_for_cluster(hostname)
     livy_batch = post_livy_batch(hostname, livy_step)
     while livy_batch.state not in LIVY_TERMINAL_STATES:
         time.sleep(5)
