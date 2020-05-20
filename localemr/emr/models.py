@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 from datetime import datetime, timedelta
 
-
 import pytz
 from typing import List
 from boto3 import Session
@@ -14,18 +13,16 @@ import re
 import time
 import logging
 import traceback
-import tempfile
 from copy import deepcopy
 import docker
 from docker.errors import NotFound, APIError
 from distutils.version import StrictVersion
 from multiprocessing import Queue, Process
 from xml.sax.saxutils import escape
-from localemr.s3.convert_to_local import get_files_from_s3, convert_s3_to_local_path
 from localemr.livy.backend import send_step_to_livy
 from localemr.models import SparkResult
 from localemr.config import Configuration
-from localemr.models import EmrStepState, FailureDetails, EmrClusterState, EMR_VERSION_TO_APPLICATION_VERSION
+from localemr.models import EmrStepState, FailureDetails, EmrClusterState, EMR_TO_APPLICATION_VERSION
 from localemr.config import configuration
 
 
@@ -46,15 +43,15 @@ class FakeBootstrapAction(BaseModel):
 
 class FakeInstanceGroup(BaseModel):
     def __init__(
-        self,
-        instance_count,
-        instance_role,
-        instance_type,
-        market="ON_DEMAND",
-        name=None,
-        id=None,
-        bid_price=None,
-        ebs_configuration=None,
+            self,
+            instance_count,
+            instance_role,
+            instance_type,
+            market="ON_DEMAND",
+            name=None,
+            id=None,
+            bid_price=None,
+            ebs_configuration=None,
     ):
         self.id = id or random_instance_group_id()
 
@@ -85,14 +82,14 @@ class FakeInstanceGroup(BaseModel):
 
 class FakeStep(BaseModel):
     def __init__(
-        self,
-        state,
-        hostname,
-        name="",
-        jar="",
-        args=None,
-        properties=None,
-        action_on_failure="TERMINATE_CLUSTER",
+            self,
+            state,
+            hostname,
+            name="",
+            jar="",
+            args=None,
+            properties=None,
+            action_on_failure="TERMINATE_CLUSTER",
     ):
         self.id = random_step_id()
 
@@ -116,7 +113,8 @@ class FakeStep(BaseModel):
 
 
 class ClusterSubset:
-    def __init__(self, name, release_label, state, start_datetime, ready_datetime, end_datetime):
+    def __init__(self, state, name=None, release_label=None, start_datetime=None, ready_datetime=None,
+                 end_datetime=None):
         self.name = name
         self.release_label = release_label
         self.state = state
@@ -132,22 +130,23 @@ class ClusterSubset:
 class FakeCluster(BaseModel):
 
     def __init__(
-        self,
-        emr_backend,
-        name,
-        log_uri,
-        job_flow_role,
-        service_role,
-        steps,
-        instance_attrs,
-        bootstrap_actions=None,
-        configurations=None,
-        cluster_id=None,
-        visible_to_all_users="false",
-        release_label=None,
-        requested_ami_version=None,
-        running_ami_version=None,
-        custom_ami_id=None,
+            self,
+            emr_backend,
+            name,
+            log_uri,
+            job_flow_role,
+            service_role,
+            steps,
+            instance_attrs,
+            bootstrap_actions=None,
+            configurations=None,
+            cluster_id=None,
+            visible_to_all_users="false",
+            release_label=None,
+            requested_ami_version=None,
+            running_ami_version=None,
+            custom_ami_id=None,
+            config=None
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -244,8 +243,12 @@ class FakeCluster(BaseModel):
         if self.steps:
             self.steps[0].start()
 
-        self.process_queue = Queue()
-        self.status_queue = Queue()
+        self.step_process_queue = Queue()
+        self.step_status_queue = Queue()
+
+        self.cluster_process_queue = Queue()
+        self.cluster_status_queue = Queue()
+        self.config = config
 
     @property
     def instance_groups(self):
@@ -270,16 +273,15 @@ class FakeCluster(BaseModel):
     def run_bootstrap_actions(self):
         self.state = EmrClusterState.BOOTSTRAPPING
         self.ready_datetime = datetime.now(pytz.utc)
-        self.state = EmrClusterState.WAITING
+
+    def terminate_on_no_steps(self):
         if not self.steps:
             if not self.keep_job_flow_alive_when_no_steps:
                 self.terminate()
 
     def terminate(self):
-        # TODO THIS
         self.state = EmrClusterState.TERMINATING
-        self.end_datetime = datetime.now(pytz.utc)
-        self.state = EmrClusterState.TERMINATED
+        self.cluster_process_queue.put(self.create_cluster_subset())
 
     def add_applications(self, applications):
         self.applications.extend(
@@ -288,7 +290,7 @@ class FakeCluster(BaseModel):
                     name=app.get("name", ""),
                     version=app.get("version", ""),
                     args=app.get("args", []),
-                    additional_info=app.get("additiona_info", {}),
+                    additional_info=app.get("additional_info", {}),
                 )
                 for app in applications
             ]
@@ -311,9 +313,8 @@ class FakeCluster(BaseModel):
     def add_steps(self, steps):
         added_steps = []
         for step in steps:
-            hostname = configuration.emr_host if configuration.emr_host else self.name
-            fake = FakeStep(state=EmrStepState.PENDING, hostname=hostname, **step)
-            self.process_queue.put(fake)
+            fake = FakeStep(state=EmrStepState.PENDING, hostname=self.name, **step)
+            self.step_process_queue.put(fake)
             self.steps.append(fake)
             added_steps.append(fake)
         return added_steps
@@ -332,10 +333,10 @@ class FakeCluster(BaseModel):
         self.visible_to_all_users = visibility
 
     def update_with_cluster_subset(self, cluster_subset: ClusterSubset):
-        self.state = cluster_subset.state
-        self.start_datetime = cluster_subset.start_datetime
-        self.ready_datetime = cluster_subset.ready_datetime
-        self.end_datetime = cluster_subset.end_datetime
+        self.state = cluster_subset.state or self.state
+        self.start_datetime = cluster_subset.start_datetime or self.start_datetime
+        self.ready_datetime = cluster_subset.ready_datetime or self.ready_datetime
+        self.end_datetime = cluster_subset.end_datetime or self.end_datetime
 
     def create_cluster_subset(self) -> ClusterSubset:
         return ClusterSubset(
@@ -346,18 +347,6 @@ class FakeCluster(BaseModel):
             ready_datetime=self.ready_datetime,
             end_datetime=self.end_datetime
         )
-
-
-class DockerNetwork:
-    __network = None
-
-    def __init__(self, client: docker.client):
-        if self.__network is None:
-            self.__network = client.networks.create('localemr')
-
-    @property
-    def network(self):
-        return self.__network
 
 
 class MultiProcessing:
@@ -380,20 +369,10 @@ class MultiProcessing:
         step.start()
         try:
             status_queue.put(step)
-            cli_args = step.args
-            with tempfile.TemporaryDirectory(prefix=config.local_dir) as tmp_dir_name:
-                dir_name = tmp_dir_name if config.use_tmp_dir else config.local_dir
-
-                if config.fetch_from_s3:
-                    get_files_from_s3(config, dir_name, cli_args)
-
-                if config.convert_s3_to_local:
-                    cli_args = convert_s3_to_local_path(dir_name, cli_args)
-
-                hostname = 'http://{}:8998'.format(step.hostname)
-                spark_result = MultiProcessing.process_spark_command(config, hostname, cli_args)
-                step = MultiProcessing.make_step_terminal(step, spark_result.failure_details, spark_result.state)
-                status_queue.put(step)
+            hostname = 'http://{}:8998'.format(step.hostname)
+            spark_result = MultiProcessing.process_spark_command(config, hostname, step.args)
+            step = MultiProcessing.make_step_terminal(step, spark_result.failure_details, spark_result.state)
+            status_queue.put(step)
 
         except Exception as e:
             failure_details = FailureDetails(
@@ -426,7 +405,7 @@ class MultiProcessing:
                 cluster_release_label, aws_docs
             ) from e
         parsed_emr_version = StrictVersion(emr_version)
-        versions = list(EMR_VERSION_TO_APPLICATION_VERSION.keys())
+        versions = list(EMR_TO_APPLICATION_VERSION.keys())
         last_version = versions[0]
         if parsed_emr_version <= StrictVersion(last_version):
             return last_version
@@ -441,43 +420,18 @@ class MultiProcessing:
         return versions[-1]
 
     @staticmethod
-    def process_cluster(config: Configuration, cluster: ClusterSubset, status_queue: Queue):
-        client = docker.DockerClient(base_url='unix://var/run/docker.sock')
-        env = {
-            'SPARK_MASTER': 'local[*]',
-            'DEPLOY_MODE': 'client',
-        }
-        # This binds the containers port 8998 to a random port in the host
-        ports = {'8998/tcp': None}
+    def get_localemr_container(config: configuration):
         try:
-            localemr_container = client.containers.get(config.localemr_container_name)
+            return config.client.containers.get(config.localemr_container_name)
         except NotFound as e:
             message = "Container %s not found, most likely the container name was " \
                       "changed without changing the env; LOCALEMR_CONTAINER_NAME"
             raise NotFound(message, config.localemr_container_name) from e
 
+    @staticmethod
+    def run_livy_container(client: docker.client, container_image, container_args):
         try:
-            localemr_volume = list(filter(lambda v: config.localemr_volume_name in v.name, client.volumes.list()))[0]
-        except IndexError as e:
-            message = "Volume %s not found, most likely the volume name was " \
-                      "changed without changing the env; LOCALEMR_VOLUME_NAME"
-            raise IndexError(message, config.localemr_volume_name) from e
-
-        volume_bind = {localemr_volume.name: {'bind': '/tmp/localemr', 'mode': 'rw'}}
-
-        application_versions = EMR_VERSION_TO_APPLICATION_VERSION[
-            MultiProcessing.get_emr_version(cluster.release_label)]
-        container_image = 'davlum/livy:0.5.0-spark{}'.format(application_versions['Spark'])
-
-        try:
-            livy_container = client.containers.run(
-                container_image,
-                name=cluster.name,
-                ports=ports,
-                environment=env,
-                detach=True,
-                volumes=volume_bind
-            )
+            return client.containers.run(container_image, **container_args)
         except APIError as e:
             if e.status_code == 409:
                 msg = e.response.json()['message']
@@ -485,38 +439,70 @@ class MultiProcessing:
                 if len(maybe_container_id) != 1:
                     raise e
                 client.containers.get(maybe_container_id[0]).remove(v=True, force=True)
-                livy_container = client.containers.run(
-                    container_image,
-                    name=cluster.name,
-                    ports=ports,
-                    environment=env,
-                    detach=True,
-                    volumes=volume_bind
-                )
+                return client.containers.run(container_image, **container_args)
             else:
                 raise e
 
-        docker_network = DockerNetwork(client).network
-        docker_network.connect(livy_container)
-        docker_network.connect(localemr_container)
+    @staticmethod
+    def terminate_cluster(config: Configuration, cluster: ClusterSubset, status_queue: Queue):
+        config.client.containers.get(cluster.name).remove(v=True, force=True)
+        cluster.end_datetime = datetime.now(pytz.utc)
+        cluster.state = EmrClusterState.TERMINATED
+        status_queue.put(cluster)
+
+    @staticmethod
+    def create_cluster(config: Configuration, cluster: ClusterSubset, status_queue: Queue):
+        localemr_container = MultiProcessing.get_localemr_container(config)
+
+        application_versions = EMR_TO_APPLICATION_VERSION[MultiProcessing.get_emr_version(cluster.release_label)]
+        container_image = 'davlum/localemr-cluster:0.5.0-spark{}'.format(application_versions['Spark'])
+        env = {
+            'SPARK_MASTER': 'local[*]',
+            'DEPLOY_MODE': 'client',
+            'LOCAL_DIR_WHITELIST': config.local_dir_whitelist
+        }
+        container_args = {
+            'name': cluster.name,
+            # This binds the container's port 8998 to a random port in the host
+            'ports': {'8998/tcp': None},
+            'detach': True,
+            'environment': env
+        }
+        livy_container = MultiProcessing.run_livy_container(config.client, container_image, container_args)
+        # TODO: Fix this dirty hack. We're just taking the first network that is attached to the container
+        localemr_networks = localemr_container.attrs['NetworkSettings']['Networks']
+        localemr_network_name = list(localemr_networks.keys())[0]
+        localemr_network = config.client.networks.get(localemr_network_name)
+        localemr_network.connect(livy_container)
         cluster.run_bootstrap_actions()
         status_queue.put(cluster)
 
     @staticmethod
-    def read_task_queue(config: Configuration, process_queue: Queue, status_queue: Queue):
+    def read_task_queue(
+            config: Configuration,
+            step_process_queue: Queue,
+            step_status_queue: Queue,
+            cluster_process_queue: Queue,
+            cluster_status_queue: Queue):
         while True:
-            if process_queue.empty():
-                # TODO: Change the state of the cluster to WAITING here
-                time.sleep(4)
-            else:
-                # TODO: Change the state of the cluster to RUNNING here
-                step_or_cluster = process_queue.get()
-                if isinstance(step_or_cluster, FakeStep):
-                    MultiProcessing.process_step(config, step_or_cluster, status_queue)
-                elif isinstance(step_or_cluster, ClusterSubset):
-                    MultiProcessing.process_cluster(config, step_or_cluster, status_queue)
+            if cluster_process_queue.empty():
+                if step_process_queue.empty():
+                    cluster_status_queue.put(ClusterSubset(state=EmrClusterState.WAITING))
+                    time.sleep(4)
                 else:
-                    raise ValueError("DA FUQ IS IT")
+                    cluster_status_queue.put(ClusterSubset(state=EmrClusterState.RUNNING))
+                    step_or_cluster = step_process_queue.get()
+                    MultiProcessing.process_step(config, step_or_cluster, step_status_queue)
+            else:
+                cluster_subset = cluster_process_queue.get()
+                if cluster_subset.state == EmrClusterState.BOOTSTRAPPING:
+                    MultiProcessing.create_cluster(config, cluster_subset, cluster_status_queue)
+                elif cluster_subset.state == EmrClusterState.TERMINATING:
+                    MultiProcessing.terminate_cluster(config, cluster_subset, cluster_status_queue)
+                    return
+                else:
+                    raise ValueError("Should only be processing cluster actions on States; "
+                                     "BOOTSTRAPPING AND TERMINATING")
 
 
 class ElasticMapReduceBackend(BaseBackend):
@@ -556,11 +542,11 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster.add_tags(tags)
 
     def describe_job_flows(
-        self,
-        job_flow_ids=None,
-        job_flow_states=None,
-        created_after=None,
-        created_before=None,
+            self,
+            job_flow_ids=None,
+            job_flow_states=None,
+            created_after=None,
+            created_before=None,
     ):
         clusters = self.clusters.values()
 
@@ -582,14 +568,14 @@ class ElasticMapReduceBackend(BaseBackend):
         return sorted(clusters, key=lambda x: x.id)[:512]
 
     def describe_step(self, cluster_id, step_id):
-        steps = self.update_steps_and_clusters(cluster_id)
+        steps = self.update_steps_and_cluster(cluster_id)
         for step in steps:
             if step.id == step_id:
                 return step
 
     def get_cluster(self, cluster_id):
         if cluster_id in self.clusters:
-            self.update_steps_and_clusters(cluster_id)
+            self.update_steps_and_cluster(cluster_id)
             return self.clusters[cluster_id]
         raise EmrError("ResourceNotFoundException", "", "error_json")
 
@@ -612,7 +598,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return actions[start_idx: start_idx + max_items], marker
 
     def list_clusters(
-        self, cluster_states=None, created_after=None, created_before=None, marker=None
+            self, cluster_states=None, created_after=None, created_before=None, marker=None
     ):
         max_items = 50
         clusters = self.clusters.values()
@@ -642,22 +628,23 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return groups[start_idx: start_idx + max_items], marker
 
-    def update_steps_and_clusters(self, cluster_id) -> List[FakeStep]:
+    def update_steps_and_cluster(self, cluster_id) -> List[FakeStep]:
         steps: List[FakeStep] = self.clusters[cluster_id].steps
-        status_queue: Queue = self.clusters[cluster_id].status_queue
-        while not status_queue.empty():
-            updated_step_or_cluster = status_queue.get()
-            if isinstance(updated_step_or_cluster, FakeStep):
-                steps = [updated_step_or_cluster if step.id == updated_step_or_cluster.id else step for step in steps]
-            if isinstance(updated_step_or_cluster, FakeCluster):
-                self.clusters[cluster_id].state = updated_step_or_cluster.state
-                self.clusters[cluster_id].ready_datetime = updated_step_or_cluster.ready_datetime
+        cluster_status_queue: Queue = self.clusters[cluster_id].cluster_status_queue
+        step_status_queue: Queue = self.clusters[cluster_id].step_status_queue
+        while not step_status_queue.empty():
+            updated_step = step_status_queue.get()
+            steps = [updated_step if step.id == updated_step.id else step for step in steps]
+        while not cluster_status_queue.empty():
+            updated_cluster = cluster_status_queue.get()
+            self.clusters[cluster_id].update_with_cluster_subset(updated_cluster)
+            self.clusters[cluster_id].terminate_on_no_steps()
         self.clusters[cluster_id].steps = steps
         return steps
 
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
-        steps = self.update_steps_and_clusters(cluster_id)
+        steps = self.update_steps_and_cluster(cluster_id)
         if step_ids:
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
@@ -680,23 +667,20 @@ class ElasticMapReduceBackend(BaseBackend):
         cluster.remove_tags(tag_keys)
 
     def run_job_flow(self, **kwargs):
-        fake_cluster = FakeCluster(self, **kwargs)
-        if configuration.dynamic_clusters:
-            fake_cluster.process_queue.put(fake_cluster.create_cluster_subset())
-        else:
-            fake_cluster.run_bootstrap_actions()
-
+        fake_cluster = FakeCluster(self, **kwargs, config=configuration)
+        fake_cluster.cluster_process_queue.put(fake_cluster.create_cluster_subset())
         step_reader_process = Process(
             target=MultiProcessing.read_task_queue,
             args=(
                 configuration,
-                fake_cluster.process_queue,
-                fake_cluster.status_queue,
+                fake_cluster.step_process_queue,
+                fake_cluster.step_status_queue,
+                fake_cluster.cluster_process_queue,
+                fake_cluster.cluster_status_queue,
             )
         )
         step_reader_process.daemon = True
         step_reader_process.start()
-
         return fake_cluster
 
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):
@@ -710,7 +694,6 @@ class ElasticMapReduceBackend(BaseBackend):
             cluster.set_termination_protection(value)
 
     def terminate_job_flows(self, job_flow_ids):
-        # TODO terminate the clusters when they are dynamic
         clusters = []
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
@@ -720,6 +703,7 @@ class ElasticMapReduceBackend(BaseBackend):
 
 
 emr_backends = {}
+
 for region in Session().get_available_regions("emr"):
     emr_backends[region] = ElasticMapReduceBackend(region)
 for region in Session().get_available_regions("emr", partition_name="aws-us-gov"):
