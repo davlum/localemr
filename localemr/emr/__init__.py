@@ -1,0 +1,1 @@
+from .urls import url_paths
