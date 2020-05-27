@@ -53,6 +53,13 @@ class EmrClusterState:
     TERMINATED_WITH_ERRORS = 'TERMINATED_WITH_ERRORS'
 
 
+EMR_CLUSTER_TERMINAL_STATES = [
+    EmrClusterState.TERMINATED,
+    EmrClusterState.TERMINATED_WITH_ERRORS
+]
+
+# There must be a docker image on davlum/localemr-container
+# with a matching Spark version for this to work.
 EMR_TO_APPLICATION_VERSION = {
     '5.0.0': {'Spark': '2.0.0'},
     '5.0.3': {'Spark': '2.0.1'},

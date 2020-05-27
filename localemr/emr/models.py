@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 from datetime import datetime, timedelta
 
 import pytz
+import functools
 from typing import List
 from boto3 import Session
 from dateutil.parser import parse as dtparse
@@ -22,7 +23,8 @@ from xml.sax.saxutils import escape
 from localemr.livy.backend import send_step_to_livy
 from localemr.models import SparkResult
 from localemr.config import Configuration
-from localemr.models import EmrStepState, FailureDetails, EmrClusterState, EMR_TO_APPLICATION_VERSION
+from localemr.models import EmrStepState, FailureDetails, EmrClusterState, EMR_TO_APPLICATION_VERSION, \
+    EMR_CLUSTER_TERMINAL_STATES
 from localemr.config import configuration
 
 
@@ -239,9 +241,6 @@ class FakeCluster(BaseModel):
         self.state = None
 
         self.start_cluster()
-        self.run_bootstrap_actions()
-        if self.steps:
-            self.steps[0].start()
 
         self.step_process_queue = Queue()
         self.step_status_queue = Queue()
@@ -271,11 +270,10 @@ class FakeCluster(BaseModel):
         self.start_datetime = datetime.now(pytz.utc)
 
     def run_bootstrap_actions(self):
-        self.state = EmrClusterState.BOOTSTRAPPING
         self.ready_datetime = datetime.now(pytz.utc)
 
     def terminate_on_no_steps(self):
-        if not self.steps:
+        if not self.steps and self.state not in EMR_CLUSTER_TERMINAL_STATES:
             if not self.keep_job_flow_alive_when_no_steps:
                 self.terminate()
 
@@ -420,7 +418,7 @@ class MultiProcessing:
         return versions[-1]
 
     @staticmethod
-    def get_localemr_container(config: configuration):
+    def get_localemr_container(config: Configuration):
         try:
             return config.client.containers.get(config.localemr_container_name)
         except NotFound as e:
@@ -445,7 +443,13 @@ class MultiProcessing:
 
     @staticmethod
     def terminate_cluster(config: Configuration, cluster: ClusterSubset, status_queue: Queue):
-        config.client.containers.get(cluster.name).remove(v=True, force=True)
+        try:
+            config.client.containers.get(cluster.name).remove(v=True, force=True)
+        except NotFound as e:
+            if e.status_code == 404:
+                logging.exception("Container %s not found, could not remove", cluster.name)
+            else:
+                raise e
         cluster.end_datetime = datetime.now(pytz.utc)
         cluster.state = EmrClusterState.TERMINATED
         status_queue.put(cluster)
@@ -455,18 +459,18 @@ class MultiProcessing:
         localemr_container = MultiProcessing.get_localemr_container(config)
 
         application_versions = EMR_TO_APPLICATION_VERSION[MultiProcessing.get_emr_version(cluster.release_label)]
-        container_image = 'davlum/localemr-cluster:0.5.0-spark{}'.format(application_versions['Spark'])
+        container_image = 'davlum/localemr-container:0.5.0-spark{}'.format(application_versions['Spark'])
         env = {
             'SPARK_MASTER': 'local[*]',
             'DEPLOY_MODE': 'client',
-            'LOCAL_DIR_WHITELIST': config.local_dir_whitelist
+            'LOCAL_DIR_WHITELIST': config.local_dir_whitelist,
         }
         container_args = {
             'name': cluster.name,
             # This binds the container's port 8998 to a random port in the host
             'ports': {'8998/tcp': None},
             'detach': True,
-            'environment': env
+            'environment': env,
         }
         livy_container = MultiProcessing.run_livy_container(config.client, container_image, container_args)
         # TODO: Fix this dirty hack. We're just taking the first network that is attached to the container
@@ -495,14 +499,25 @@ class MultiProcessing:
                     MultiProcessing.process_step(config, step_or_cluster, step_status_queue)
             else:
                 cluster_subset = cluster_process_queue.get()
-                if cluster_subset.state == EmrClusterState.BOOTSTRAPPING:
+                if cluster_subset.state == EmrClusterState.STARTING:
                     MultiProcessing.create_cluster(config, cluster_subset, cluster_status_queue)
                 elif cluster_subset.state == EmrClusterState.TERMINATING:
                     MultiProcessing.terminate_cluster(config, cluster_subset, cluster_status_queue)
                     return
                 else:
-                    raise ValueError("Should only be processing cluster actions on States; "
-                                     "BOOTSTRAPPING AND TERMINATING")
+                    raise ValueError(
+                        "Should only be processing cluster actions on States; "
+                        "STARTING and TERMINATING. State is; %s", cluster_subset.state
+                    )
+
+
+def update_wrapper(func):
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        for cluster_id in self.clusters.keys():
+            self.update_steps_and_cluster(cluster_id)
+        return func(self, *args, **kwargs)
+    return wrapper
 
 
 class ElasticMapReduceBackend(BaseBackend):
@@ -513,11 +528,25 @@ class ElasticMapReduceBackend(BaseBackend):
         self.clusters = {}
         self.instance_groups = {}
 
+    def update_steps_and_cluster(self, cluster_id):
+        steps: List[FakeStep] = self.clusters[cluster_id].steps
+        cluster_status_queue: Queue = self.clusters[cluster_id].cluster_status_queue
+        step_status_queue: Queue = self.clusters[cluster_id].step_status_queue
+        while not step_status_queue.empty():
+            updated_step = step_status_queue.get()
+            steps = [updated_step if step.id == updated_step.id else step for step in steps]
+        while not cluster_status_queue.empty():
+            updated_cluster: ClusterSubset = cluster_status_queue.get()
+            self.clusters[cluster_id].update_with_cluster_subset(updated_cluster)
+            self.clusters[cluster_id].terminate_on_no_steps()
+        self.clusters[cluster_id].steps = steps
+
     def reset(self):
         region_name = self.region_name
         self.__dict__ = {}
         self.__init__(region_name)
 
+    @update_wrapper
     def add_applications(self, cluster_id, applications):
         cluster = self.get_cluster(cluster_id)
         cluster.add_applications(applications)
@@ -532,15 +561,18 @@ class ElasticMapReduceBackend(BaseBackend):
             result_groups.append(group)
         return result_groups
 
+    @update_wrapper
     def add_job_flow_steps(self, job_flow_id, steps):
         cluster = self.clusters[job_flow_id]
         steps = cluster.add_steps(steps)
         return steps
 
+    @update_wrapper
     def add_tags(self, cluster_id, tags):
         cluster = self.get_cluster(cluster_id)
         cluster.add_tags(tags)
 
+    @update_wrapper
     def describe_job_flows(
             self,
             job_flow_ids=None,
@@ -548,6 +580,7 @@ class ElasticMapReduceBackend(BaseBackend):
             created_after=None,
             created_before=None,
     ):
+
         clusters = self.clusters.values()
 
         within_two_month = datetime.now(pytz.utc) - timedelta(days=60)
@@ -567,12 +600,14 @@ class ElasticMapReduceBackend(BaseBackend):
         # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
+    @update_wrapper
     def describe_step(self, cluster_id, step_id):
-        steps = self.update_steps_and_cluster(cluster_id)
+        steps = self.clusters[cluster_id].steps
         for step in steps:
             if step.id == step_id:
                 return step
 
+    @update_wrapper
     def get_cluster(self, cluster_id):
         if cluster_id in self.clusters:
             self.update_steps_and_cluster(cluster_id)
@@ -586,6 +621,7 @@ class ElasticMapReduceBackend(BaseBackend):
             if group_id in instance_group_ids
         ]
 
+    @update_wrapper
     def list_bootstrap_actions(self, cluster_id, marker=None):
         max_items = 50
         actions = self.clusters[cluster_id].bootstrap_actions
@@ -597,6 +633,7 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return actions[start_idx: start_idx + max_items], marker
 
+    @update_wrapper
     def list_clusters(
             self, cluster_states=None, created_after=None, created_before=None, marker=None
     ):
@@ -628,23 +665,10 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return groups[start_idx: start_idx + max_items], marker
 
-    def update_steps_and_cluster(self, cluster_id) -> List[FakeStep]:
-        steps: List[FakeStep] = self.clusters[cluster_id].steps
-        cluster_status_queue: Queue = self.clusters[cluster_id].cluster_status_queue
-        step_status_queue: Queue = self.clusters[cluster_id].step_status_queue
-        while not step_status_queue.empty():
-            updated_step = step_status_queue.get()
-            steps = [updated_step if step.id == updated_step.id else step for step in steps]
-        while not cluster_status_queue.empty():
-            updated_cluster = cluster_status_queue.get()
-            self.clusters[cluster_id].update_with_cluster_subset(updated_cluster)
-            self.clusters[cluster_id].terminate_on_no_steps()
-        self.clusters[cluster_id].steps = steps
-        return steps
-
+    @update_wrapper
     def list_steps(self, cluster_id, marker=None, step_ids=None, step_states=None):
         max_items = 50
-        steps = self.update_steps_and_cluster(cluster_id)
+        steps = self.clusters[cluster_id].steps
         if step_ids:
             steps = [s for s in steps if s.id in step_ids]
         if step_states:
@@ -655,6 +679,7 @@ class ElasticMapReduceBackend(BaseBackend):
         )
         return steps[start_idx: start_idx + max_items], marker
 
+    @update_wrapper
     def modify_instance_groups(self, instance_groups):
         result_groups = []
         for instance_group in instance_groups:
@@ -662,6 +687,7 @@ class ElasticMapReduceBackend(BaseBackend):
             group.set_instance_count(int(instance_group["instance_count"]))
         return result_groups
 
+    @update_wrapper
     def remove_tags(self, cluster_id, tag_keys):
         cluster = self.get_cluster(cluster_id)
         cluster.remove_tags(tag_keys)
@@ -683,16 +709,19 @@ class ElasticMapReduceBackend(BaseBackend):
         step_reader_process.start()
         return fake_cluster
 
+    @update_wrapper
     def set_visible_to_all_users(self, job_flow_ids, visible_to_all_users):
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
             cluster.set_visibility(visible_to_all_users)
 
+    @update_wrapper
     def set_termination_protection(self, job_flow_ids, value):
         for job_flow_id in job_flow_ids:
             cluster = self.clusters[job_flow_id]
             cluster.set_termination_protection(value)
 
+    @update_wrapper
     def terminate_job_flows(self, job_flow_ids):
         clusters = []
         for job_flow_id in job_flow_ids:
