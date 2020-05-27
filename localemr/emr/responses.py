@@ -10,9 +10,9 @@ from six.moves.urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
-from .exceptions import EmrError
-from .models import emr_backends
-from .utils import steps_from_query_string, tags_from_query_string
+from moto.emr.exceptions import EmrError
+from localemr.emr.models import emr_backends
+from moto.emr.utils import steps_from_query_string, tags_from_query_string
 
 
 def generate_boto3_response(operation):

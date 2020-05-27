@@ -8,7 +8,7 @@ from boto3 import Session
 from dateutil.parser import parse as dtparse
 from moto.core import BaseBackend, BaseModel
 from moto.emr.exceptions import EmrError
-from .utils import random_instance_group_id, random_cluster_id, random_step_id
+from moto.emr.utils import random_instance_group_id, random_cluster_id, random_step_id
 
 import re
 import time
