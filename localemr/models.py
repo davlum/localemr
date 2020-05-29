@@ -68,6 +68,7 @@ class LocalFakeCluster(FakeCluster):
 
         self.cluster_process_queue = Queue()
         self.cluster_status_queue = Queue()
+        self.release_label = self.release_label or 'emr-' + list(EMR_TO_APPLICATION_VERSION.keys())[-1]
 
     def run_bootstrap_actions(self):
         self.ready_datetime = datetime.now(pytz.utc)
