@@ -1,4 +1,4 @@
-from localemr.emr.models import MultiProcessing
+from localemr.models import MultiProcessing
 
 
 def test_get_emr_version():

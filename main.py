@@ -4,7 +4,7 @@ import sys
 
 
 # Replace moto emr with the custom emr implementation
-sys.modules['moto.emr.urls'] = __import__('localemr.emr.urls')
+sys.modules['moto.emr.urls'] = __import__('localemr.urls')
 
 
 if __name__ == "__main__":

@@ -2,9 +2,8 @@ import time
 import boto3
 from io import StringIO
 import pandas as pd
-from test.fixtures.util import get_client, make_cluster
-from localemr.models import EMR_STEP_TERMINAL_STATES
-from test.fixtures.example_steps import S3_STEP
+from localemr.common import EMR_STEP_TERMINAL_STATES
+from test.fixtures.example_steps import S3_STEP, MAX_WAIT
 
 
 def test_run_step_with_s3():
@@ -17,15 +16,29 @@ def test_run_step_with_s3():
     conn.put_object(Bucket=bucket, Key='key/2020-05/02/02/part.txt', Body="goodbye")  # Won't be returned
     conn.put_object(Bucket=bucket, Key='key/2020-05/03/08/part.gz', Body="foobar")  # Won't be returned
 
-    emr = get_client()
-    resp = make_cluster(emr)
+    emr = boto3.client(
+        service_name='emr',
+        region_name='us-east-1',
+        endpoint_url='http://localhost:3000',
+    )
+    resp = emr.run_job_flow(
+        Name="log-etl-dev",
+        ReleaseLabel='emr-5.29.0',
+        Instances={
+            'MasterInstanceType': 'm4.xlarge',
+            'SlaveInstanceType': 'm4.xlarge',
+            'InstanceCount': 3,
+            'KeepJobFlowAliveWhenNoSteps': True,
+        },
+
+    )
 
     cluster_id = resp["JobFlowId"]
 
     add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[S3_STEP])
     first_step_ip = add_response['StepIds'][0]
-    max_wait = 10
-    while max_wait != 0:
+    wait_counter = 0
+    while wait_counter != MAX_WAIT:
         time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
         if resp['Step']['Status']['State'] in EMR_STEP_TERMINAL_STATES:
@@ -33,6 +46,6 @@ def test_run_step_with_s3():
             result = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')), header=None)
             assert set(map(tuple, result.values.tolist())) == {("goodbye", 1), ("hello", 2)}
             return
-        max_wait = max_wait - 1
+        wait_counter = wait_counter + 1
 
-    raise ValueError("Test timed out and failed")
+    raise TimeoutError("Test timed out and failed")
