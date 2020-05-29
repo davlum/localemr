@@ -7,3 +7,14 @@ services:
       - "3000:3000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/opt/localemr
+    environment:
+      - AWS_ACCESS_KEY_ID=testing
+      - AWS_SECRET_ACCESS_KEY=testing
+      - S3_ENDPOINT=http://s3:2000
+  s3:
+    container_name: s3
+    image: motoserver/moto:latest
+    command: ["s3", "-p2000"]
+    ports:
+      - "2000:2000"
