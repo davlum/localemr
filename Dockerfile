@@ -10,8 +10,4 @@ WORKDIR /opt/localemr
 
 COPY . .
 
-RUN mkdir /tmp/localemr && \
-    mv test/fixtures/word-count.jar /tmp/localemr/ && \
-    mv test/fixtures/input.txt /tmp/localemr/
-
 CMD ["python", "main.py"]
