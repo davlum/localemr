@@ -1,3 +1,5 @@
+MAX_WAIT = 20
+
 EXAMPLE_STEP = {
     'Name': 'EMR Job',
     'ActionOnFailure': 'CONTINUE',

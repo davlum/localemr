@@ -1,10 +1,8 @@
 from __future__ import unicode_literals
-from localemr.emr.responses import ElasticMapReduceResponse
+from localemr.models import emr_backends
+from moto.core.models import base_decorator, deprecated_base_decorator
+from localemr.urls import url_paths
 
-
-url_bases = [
-    "https?://(.+).elasticmapreduce.amazonaws.com",
-    "https?://elasticmapreduce.(.+).amazonaws.com",
-]
-
-url_paths = {"{0}/$": ElasticMapReduceResponse.dispatch}
+emr_backend = emr_backends["us-east-1"]
+mock_emr = base_decorator(emr_backends)
+mock_emr_deprecated = deprecated_base_decorator(emr_backends)

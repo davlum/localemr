@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import logging
 from typing import List
-from localemr.models import SparkResult, FailureDetails, EmrStepState
+from localemr.common import SparkResult, FailureDetails, EmrStepState
 from localemr.config import Configuration
 from xml.sax.saxutils import escape
 from localemr.livy.exceptions import LivyError
