@@ -42,7 +42,7 @@ def test_run_step_with_s3():
         time.sleep(5)
         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
         if resp['Step']['Status']['State'] in EMR_STEP_TERMINAL_STATES:
-            obj = conn.get_object(Bucket=bucket, Key="tmp/localemr/output/part-00000")
+            obj = conn.get_object(Bucket='new-bucket', Key="tmp/localemr/output/part-00000")
             result = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')), header=None)
             assert set(map(tuple, result.values.tolist())) == {("goodbye", 1), ("hello", 2)}
             return

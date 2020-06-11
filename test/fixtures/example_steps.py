@@ -41,7 +41,7 @@ S3_STEP = {
             '--conf', 'spark.yarn.maxAppAttempts=1',
             's3a://bucket/tmp/localemr/word-count.jar',
             's3a://bucket/key/2020-05/03/*/*.txt',
-            's3a://bucket/tmp/localemr/output',
+            's3a://new-bucket/tmp/localemr/output',
         ]
     }
 }
