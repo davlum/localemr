@@ -24,6 +24,10 @@ class Configuration:
         self.client = docker.DockerClient(base_url=docker_base_url)
         # The container name of the localemr container
         self.localemr_container_name = os.environ.get('LOCALEMR_CONTAINER_NAME', 'localemr')
+
+        self.localemr_aws_access_key_id = os.environ.get('localemr_aws_access_key_id ', 'TESTING')
+        self.localemr_aws_secret_access_key = os.environ.get('localemr_aws_secret_access_key ', 'TESTING')
+        self.localemr_aws_default_region = os.environ.get('localemr_aws_default_region ', 'us-east-1')
         # TODO: This feature
         # # a comma separated string of the form <cluster_name>:<emr_release_label>,...
         # # example;
