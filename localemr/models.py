@@ -234,6 +234,9 @@ class MultiProcessing:
             'SPARK_MASTER': 'local[*]',
             'DEPLOY_MODE': 'client',
             'LOCAL_DIR_WHITELIST': config.local_dir_whitelist,
+            'AWS_DEFAULT_REGION': config.localemr_aws_default_region,
+            'AWS_ACCESS_KEY_ID': config.localemr_aws_access_key_id,
+            'AWS_SECRET_ACCESS_KEY': config.localemr_aws_secret_access_key,
         }
         container_args = {
             'name': cluster.name,
