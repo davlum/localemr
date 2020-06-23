@@ -14,6 +14,7 @@ def validate_wrapper(func):
     return wrapper
 
 
+# pylint: disable=abstract-method
 class LocalElasticMapReduceResponse(ElasticMapReduceResponse):
 
     @property

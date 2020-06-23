@@ -1,14 +1,14 @@
 import re
 import json
 import time
+import logging
+from typing import List
+from xml.sax.saxutils import escape
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import logging
-from typing import List
 from localemr.common import SparkResult, FailureDetails, EmrStepState
 from localemr.config import Configuration
-from xml.sax.saxutils import escape
 from localemr.livy.exceptions import LivyError
 from localemr.livy.models import *
 
@@ -19,6 +19,7 @@ def from_dash_to_snake_case(conf_key: str):
     return conf_key[2:].replace('-', '_')
 
 
+# pylint: disable=inconsistent-return-statements
 def extract_conf_until_jar(args: List[str]) -> LivyRequestBody:
     spark_conf = {}
     livy_step = {}
@@ -30,7 +31,7 @@ def extract_conf_until_jar(args: List[str]) -> LivyRequestBody:
             if camel_key == 'conf':
                 key_val_ls = val.split("=")
                 if len(key_val_ls) != 2:
-                    raise ValueError("spark --conf a `%s` is badly formatted", val)
+                    raise ValueError("spark --conf a `{}` is badly formatted".format(val))
                 spark_conf[key_val_ls[0]] = key_val_ls[1]
             else:
                 livy_step[camel_key] = val
@@ -43,48 +44,37 @@ def extract_conf_until_jar(args: List[str]) -> LivyRequestBody:
                 **livy_step
             )
         else:
-            raise ValueError("Emr step is not of expected format %s", args)
+            raise ValueError("Emr step is not of expected format {}".format(args))
 
 
 def transform_emr_to_livy(cli_args) -> LivyRequestBody:
     if 'spark-submit' in cli_args[0]:
         return extract_conf_until_jar(cli_args[1:])
-    else:
-        raise ValueError("Unsupported command `%s`", cli_args[0])
+    raise ValueError("Unsupported command `%s`" % cli_args[0])
 
 
 def post_livy_batch(hostname: str, data: LivyRequestBody) -> LivyBatchObject:
     headers = {'Content-Type': 'application/json'}
-    try:
-        resp = requests.post(hostname + '/batches', data=json.dumps(data.to_dict()), headers=headers)
-        logging.info(resp.json())
-        resp.raise_for_status()
-        return LivyBatchObject.from_dict(resp.json())
-    except requests.exceptions.HTTPError as err:
-        raise LivyError(err)
+    resp = requests.post(hostname + '/batches', data=json.dumps(data.to_dict()), headers=headers)
+    logging.info(resp.json())
+    resp.raise_for_status()
+    return LivyBatchObject.from_dict(resp.json())
 
 
 def get_livy_batch(hostname: str, batch_id) -> LivyBatchObject:
     headers = {'Content-Type': 'application/json'}
-    try:
-        resp = requests.get(hostname + '/batches/{}'.format(batch_id), headers=headers)
-        logging.info(resp.json())
-        resp.raise_for_status()
-        return LivyBatchObject.from_dict(resp.json())
-    except requests.exceptions.HTTPError as err:
-        raise LivyError(err)
+    resp = requests.get(hostname + '/batches/{}'.format(batch_id), headers=headers)
+    logging.info(resp.json())
+    resp.raise_for_status()
+    return LivyBatchObject.from_dict(resp.json())
 
 
-def get_batch_logs(config: Configuration, hostname: str, batch_id) -> dict:
+def get_batch_logs(hostname: str, batch_id) -> dict:
     headers = {'Content-Type': 'application/json'}
-    params = {'size': config.livy_log_file_lines, 'from': 0}
-    try:
-        resp = requests.get(hostname + '/batches/{}/log'.format(batch_id), params=params, headers=headers)
-        logging.info(resp.json())
-        resp.raise_for_status()
-        return resp.json()
-    except requests.exceptions.HTTPError as err:
-        raise LivyError(err)
+    resp = requests.get(hostname + '/batches/{}/log'.format(batch_id), headers=headers)
+    logging.info(resp.json())
+    resp.raise_for_status()
+    return resp.json()
 
 
 def wait_for_cluster(hostname: str):
@@ -162,13 +152,13 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
             EmrStepState.COMPLETED,
             FailureDetails()
         )
-    elif livy_batch.state in (LivyState.ERROR, LivyState.DEAD):
+    if livy_batch.state in (LivyState.ERROR, LivyState.DEAD):
         return SparkResult(
             EmrStepState.FAILED,
             FailureDetails(
                 reason='Unknown Error',
-                log_file=escape('\n'.join(get_batch_logs(config, hostname, livy_batch.id)['log'])),
+                log_file=escape('\n'.join(get_batch_logs(hostname, livy_batch.id)['log'])),
             )
         )
-    else:
-        raise LivyError("Quit polling Livy in non-terminal state %s", livy_batch.state)
+
+    raise LivyError("Quit polling Livy in non-terminal state %s" % livy_batch.state)

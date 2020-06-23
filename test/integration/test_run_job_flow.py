@@ -1,10 +1,10 @@
 import time
+from test.fixtures.example_steps import MAX_WAIT
 import boto3
 from botocore.exceptions import ClientError
 import pytest
 from localemr.config import configuration
 from localemr.models import EmrClusterState
-from test.fixtures.example_steps import MAX_WAIT
 
 
 def test_run_job_flow_terminates_with_no_steps():

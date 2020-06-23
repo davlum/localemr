@@ -1,7 +1,7 @@
-from __future__ import unicode_literals
-from localemr.models import emr_backends
 from moto.core.models import base_decorator, deprecated_base_decorator
+from localemr.models import emr_backends
 from localemr.urls import url_paths
+
 
 emr_backend = emr_backends["us-east-1"]
 mock_emr = base_decorator(emr_backends)

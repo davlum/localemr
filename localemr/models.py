@@ -1,21 +1,21 @@
 from __future__ import unicode_literals
 from datetime import datetime
 
-import pytz
 import functools
 from typing import List
-from boto3 import Session
-
 import re
 import time
 import logging
 import traceback
 from copy import deepcopy
+from xml.sax.saxutils import escape
+from multiprocessing import Queue, Process
+from distutils.version import StrictVersion
+
+import pytz
+from boto3 import Session
 import docker
 from docker.errors import NotFound, APIError
-from distutils.version import StrictVersion
-from multiprocessing import Queue, Process
-from xml.sax.saxutils import escape
 from moto.emr.exceptions import EmrError
 from moto.emr.models import (
     FakeStep,
@@ -133,6 +133,7 @@ class MultiProcessing:
             step = MultiProcessing.make_step_terminal(step, spark_result.failure_details, spark_result.state)
             status_queue.put(step)
 
+        # pylint: disable=broad-except
         except Exception as e:
             failure_details = FailureDetails(
                 reason='Unknown Reason',
@@ -208,8 +209,7 @@ class MultiProcessing:
                     raise e
                 client.containers.get(maybe_container_id[0]).remove(v=True, force=True)
                 return client.containers.run(container_image, **container_args)
-            else:
-                raise e
+            raise e
 
     @staticmethod
     def terminate_cluster(config: Configuration, cluster: ClusterSubset, status_queue: Queue):
@@ -237,6 +237,7 @@ class MultiProcessing:
             'AWS_DEFAULT_REGION': config.localemr_aws_default_region,
             'AWS_ACCESS_KEY_ID': config.localemr_aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': config.localemr_aws_secret_access_key,
+            'AWS_REGION': config.localemr_aws_default_region,
         }
         container_args = {
             'name': cluster.name,
@@ -280,7 +281,7 @@ class MultiProcessing:
                 else:
                     raise ValueError(
                         "Should only be processing cluster actions on States; "
-                        "STARTING and TERMINATING. State is; %s", cluster_subset.state
+                        "STARTING and TERMINATING. State is; {}".format(cluster_subset.state)
                     )
 
 
@@ -294,9 +295,6 @@ def update_wrapper(func):
 
 
 class LocalElasticMapReduceBackend(ElasticMapReduceBackend):
-
-    def __init__(self, region_name):
-        super().__init__(region_name)
 
     def update_steps_and_cluster(self, cluster_id):
         steps: List[FakeStep] = self.clusters[cluster_id].steps

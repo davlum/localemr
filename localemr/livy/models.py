@@ -47,7 +47,7 @@ class LivyRequestBody:
                  queue: Optional[str] = None,
                  name: Optional[str] = None,
                  conf: Optional[Dict[str, str]] = None,
-                 **kwargs):
+                 **kwargs):  # pylint: disable=unused-argument
         self.file = file
         self.proxy_user = proxy_user
         self.class_name = class_name
@@ -75,6 +75,7 @@ class LivyRequestBody:
 
 
 class LivyBatchObject:
+    # pylint: disable=redefined-builtin
     def __init__(self, id: int, app_id: str, app_info: Dict[str, str], log: List[str], state: LivyState):
         self.id = id
         self.app_id = app_id

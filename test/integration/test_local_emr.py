@@ -1,6 +1,6 @@
 import time
-import boto3
 from test.fixtures.example_steps import EXAMPLE_STEP, MAX_WAIT
+import boto3
 from localemr.common import EMR_STEP_TERMINAL_STATES
 
 

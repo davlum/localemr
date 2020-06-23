@@ -1,5 +1,5 @@
-import pytest
 from test.fixtures.example_steps import EXAMPLE_STEP
+import pytest
 import localemr.livy.backend as livy
 from localemr.livy.models import LivyRequestBody
 
