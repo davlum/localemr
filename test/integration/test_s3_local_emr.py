@@ -1,9 +1,9 @@
 import time
-import boto3
 from io import StringIO
+from test.fixtures.example_steps import S3_STEP, MAX_WAIT
+import boto3
 import pandas as pd
 from localemr.common import EMR_STEP_TERMINAL_STATES
-from test.fixtures.example_steps import S3_STEP, MAX_WAIT
 
 
 def test_run_step_with_s3():

@@ -12,12 +12,8 @@ jobs:
       run: docker-compose up -d
     - name: Check running containers
       run: docker ps -a
-    - name: Install test dependencies
-      run:  docker-compose exec -T localemr pip install -r requirements-dev.txt
-    - name: Run flake8
-      run: docker-compose exec -T localemr flake8 localemr test
-    - name: Run test suite
-      run: docker-compose exec -T localemr pytest
+    - name: Run tests
+      run:  docker-compose exec -T localemr ./check.sh
     - name: Push to Dockerhub
       uses: docker/build-push-action@v1
       if:  contains(github.ref, 'release')

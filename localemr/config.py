@@ -1,5 +1,5 @@
-import docker
 import os
+import docker
 
 
 def is_true(bool_thing) -> bool:
@@ -12,8 +12,6 @@ class Configuration:
         # If true, adds the necessary configuration to use a mocked instance of S3
         # based on https://github.com/sumitsu/s3_mocktest_demo
         self.convert_to_mock_s3 = is_true(os.environ.get('CONVERT_TO_MOCK_S3', True))
-        # Number of log file lines to return in the response
-        self.livy_log_file_lines = int(os.environ.get('LIVY_LOG_FILE_LINES', 100))
         # Which directories livy can read files from
         # Default is extremely permissive as this is intended for development
         self.local_dir_whitelist = os.environ.get('LOCAL_DIR_WHITELIST', '/')
