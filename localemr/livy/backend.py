@@ -29,9 +29,9 @@ def extract_conf_until_jar(args: List[str]) -> LivyRequestBody:
             val = next(it)
             camel_key = from_dash_to_snake_case(key)
             if camel_key == 'conf':
-                key_val_ls = val.split("=")
+                key_val_ls = val.split("=", 1)
                 if len(key_val_ls) != 2:
-                    raise ValueError("spark --conf a `{}` is badly formatted".format(val))
+                    raise ValueError("spark --conf `{}` is badly formatted".format(val))
                 spark_conf[key_val_ls[0]] = key_val_ls[1]
             else:
                 livy_step[camel_key] = val
