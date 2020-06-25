@@ -238,6 +238,7 @@ class MultiProcessing:
             'AWS_ACCESS_KEY_ID': config.localemr_aws_access_key_id,
             'AWS_SECRET_ACCESS_KEY': config.localemr_aws_secret_access_key,
             'AWS_REGION': config.localemr_aws_default_region,
+            'S3_ENDPOINT': config.s3_endpoint,
         }
         container_args = {
             'name': cluster.name,
