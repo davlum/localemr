@@ -229,7 +229,10 @@ class MultiProcessing:
         localemr_container = MultiProcessing.get_localemr_container(config)
 
         application_versions = EMR_TO_APPLICATION_VERSION[MultiProcessing.get_emr_version(cluster.release_label)]
-        container_image = 'davlum/localemr-container:0.5.0-spark{}'.format(application_versions['Spark'])
+        container_image = '{repo}{spark_version}'.format(
+            repo=config.localemr_container_repo,
+            spark_version=application_versions['Spark']
+        )
         env = {
             'LOCAL_DIR_WHITELIST': config.local_dir_whitelist,
             'AWS_DEFAULT_REGION': config.localemr_aws_default_region,

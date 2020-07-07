@@ -26,12 +26,7 @@ class Configuration:
         self.localemr_aws_access_key_id = os.environ.get('LOCALEMR_AWS_ACCESS_KEY_ID', 'TESTING')
         self.localemr_aws_secret_access_key = os.environ.get('LOCALEMR_AWS_SECRET_ACCESS_KEY', 'TESTING')
         self.localemr_aws_default_region = os.environ.get('LOCALEMR_AWS_DEFAULT_REGION', 'us-east-1')
-        # TODO: This feature
-        # # a comma separated string of the form <cluster_name>:<emr_release_label>,...
-        # # example;
-        # #       cluster-1:emr-5.29.0,cluster-2:emr-5.24.0
-        # unparsed_boot_clusters = os.environ.get('BOOT_CLUSTER_LIST', '')
-        # self.boot_clusters = list(map(lambda x: tuple(x.split(':')), unparsed_boot_clusters.split(',')))
+        self.localemr_container_repo = os.environ.get('LOCALEMR_CONTAINER_REPO', 'davlum/localemr-container:0.5.0-spark')
 
 
 configuration = Configuration()
