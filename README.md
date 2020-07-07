@@ -74,7 +74,7 @@ emr = boto3.client(
 # run_job_flow could take a while to fetch the docker container
 resp = emr.run_job_flow(
     Name='example-localemr',
-    # The ReleaseLabel determines the verison of Spark
+    # The ReleaseLabel determines the version of Spark
     ReleaseLabel='emr-5.29.0',
     Instances={
         'MasterInstanceType': 'm4.xlarge',
