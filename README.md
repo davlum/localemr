@@ -4,6 +4,7 @@
 
 Based on the work from [spulec/moto](https://github.com/spulec/moto).
 
+A description of the general architecture can be found [on my blog](https://davlum.github.io/2020-07-07-localemr/).
 A locally running service that resembles [Elastic Map Reduce](https://aws.amazon.com/emr/).
 This should not be used in any production environment whatsoever. The intent is to
 facilitate local development.
