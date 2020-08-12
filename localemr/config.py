@@ -1,5 +1,4 @@
 import os
-import docker
 
 
 def is_true(bool_thing) -> bool:
@@ -9,20 +8,17 @@ def is_true(bool_thing) -> bool:
 class Configuration:
 
     def __init__(self):
+        self.exec_impl = os.environ.get('LOCALEMR_EXEC_IMPL', 'livy')
+        self.fork_impl = os.environ.get('LOCALEMR_FORK_IMPL', 'docker')
+
         # If true, adds the necessary configuration to use a mocked instance of S3
         # based on https://github.com/sumitsu/s3_mocktest_demo
         self.convert_to_mock_s3 = is_true(os.environ.get('CONVERT_TO_MOCK_S3', True))
-        # Which directories livy can read files from
-        # Default is extremely permissive as this is intended for development
-        self.local_dir_whitelist = os.environ.get('LOCAL_DIR_WHITELIST', '/')
+
         # The host where the S3 endpoint is
         self.s3_endpoint = os.environ.get('S3_ENDPOINT', None)
-        # docker base url
-        docker_base_url = os.environ.get('DOCKER_BASE_URL', 'unix://var/run/docker.sock')
-        self.client = docker.DockerClient(base_url=docker_base_url)
         # The container name of the localemr container
         self.localemr_container_name = os.environ.get('LOCALEMR_CONTAINER_NAME', 'localemr')
-
         self.localemr_aws_access_key_id = os.environ.get('LOCALEMR_AWS_ACCESS_KEY_ID', 'TESTING')
         self.localemr_aws_secret_access_key = os.environ.get('LOCALEMR_AWS_SECRET_ACCESS_KEY', 'TESTING')
         self.localemr_aws_default_region = os.environ.get('LOCALEMR_AWS_DEFAULT_REGION', 'us-east-1')

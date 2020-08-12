@@ -1,7 +1,8 @@
 from __future__ import unicode_literals
 import functools
 from moto.emr.responses import ElasticMapReduceResponse, generate_boto3_response
-from localemr.models import emr_backends, MultiProcessing
+from localemr.models import emr_backends
+from localemr.common import parse_release_label
 
 
 def validate_wrapper(func):
@@ -9,7 +10,7 @@ def validate_wrapper(func):
     def wrapper(self):
         release_label = self._get_param("ReleaseLabel")
         if release_label:
-            MultiProcessing.parse_release_label(release_label)
+            parse_release_label(release_label)
         return func(self)
     return wrapper
 

@@ -1,4 +1,4 @@
-from localemr.livy.models import LivyRequestBody
+from localemr.exec.livy.models import LivyRequestBody
 
 
 def test_from_snake_to_camel_case():
