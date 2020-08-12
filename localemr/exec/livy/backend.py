@@ -168,6 +168,8 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
 
 class Livy(ExecInterface):
 
-    @staticmethod
-    def exec_process(config: Configuration, emr_step: LocalFakeStep):
-        return send_step_to_livy(config, emr_step.args, emr_step.hostname)
+    def __init__(self, config: Configuration):
+        self.config = config
+
+    def exec_process(self, emr_step: LocalFakeStep):
+        return send_step_to_livy(self.config, emr_step.args, emr_step.hostname)

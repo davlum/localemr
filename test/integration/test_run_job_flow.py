@@ -3,7 +3,6 @@ from test.fixtures.example_steps import MAX_WAIT
 import boto3
 from botocore.exceptions import ClientError
 import pytest
-from localemr.config import configuration
 from localemr.models import EmrClusterState
 
 
@@ -71,7 +70,6 @@ def test_run_job_flow_continues_with_no_steps():
         if wait_counter == MAX_WAIT:
             raise TimeoutError("Test timed out before correct state achieved.")
 
-    assert configuration.client.containers.get(cluster_name)
     assert state == EmrClusterState.WAITING
     client.terminate_job_flows(JobFlowIds=[cluster_id])
     resp = client.describe_job_flows(JobFlowIds=[cluster_id])

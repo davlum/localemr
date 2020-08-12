@@ -13,7 +13,7 @@ from moto.emr.models import (
     ElasticMapReduceBackend
 )
 from localemr.config import configuration
-from localemr.fork_exec import read_task_queue
+from localemr.fork_exec import ForkExec, run_fork_exec
 from localemr.common import (
     LocalFakeStep,
     EmrClusterState,
@@ -84,6 +84,10 @@ def update_wrapper(func):
 
 class LocalElasticMapReduceBackend(ElasticMapReduceBackend):
 
+    def __init__(self, region_name):
+        super(LocalElasticMapReduceBackend, self).__init__(region_name)
+        self.fork_exec = ForkExec(configuration)
+
     def update_steps_and_cluster(self, cluster_id):
         steps: List[FakeStep] = self.clusters[cluster_id].steps
         cluster_status_queue: Queue = self.clusters[cluster_id].cluster_status_queue
@@ -101,9 +105,9 @@ class LocalElasticMapReduceBackend(ElasticMapReduceBackend):
         fake_cluster = LocalFakeCluster(emr_backend=self, **kwargs)
         fake_cluster.cluster_process_queue.put(fake_cluster.create_cluster_subset())
         step_reader_process = Process(
-            target=read_task_queue,
+            target=run_fork_exec,
             args=(
-                configuration,
+                self.fork_exec,
                 fake_cluster.step_process_queue,
                 fake_cluster.step_status_queue,
                 fake_cluster.cluster_process_queue,

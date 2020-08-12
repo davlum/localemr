@@ -1,7 +1,5 @@
 """
-This class abstracts forking a process. This allows for multiple backends.
-The first backend supported was Docker. This had some advantages, as the Docker container could have all
-the necessary dependencies, but it has the disadvantage of requiring Docker.
+This module combines the ForkInterface and ExecInterface which have their implementations determined in Config.
 """
 
 import time
@@ -10,9 +8,11 @@ import traceback
 from copy import deepcopy
 from datetime import datetime
 from multiprocessing import Queue
-import pytz
 from xml.sax.saxutils import escape
+import pytz
 from localemr.config import Configuration
+from localemr.fork.interface import ForkInterface
+from localemr.exec.interface import ExecInterface
 from localemr.common import (
     FailureDetails,
     LocalFakeStep,
@@ -20,6 +20,13 @@ from localemr.common import (
     EmrClusterState,
     ClusterSubset,
 )
+
+
+class ForkExec:
+
+    def __init__(self, config: Configuration):
+        self.fork = ForkInterface().get_impl(config)
+        self.exec = ExecInterface().get_impl(config)
 
 
 def make_step_terminal(step: LocalFakeStep, failure_details: FailureDetails, state: EmrStepState) -> LocalFakeStep:
@@ -30,12 +37,12 @@ def make_step_terminal(step: LocalFakeStep, failure_details: FailureDetails, sta
     return step
 
 
-def process_step(config: Configuration, step: LocalFakeStep, status_queue):
+def process_step(exec_impl: ExecInterface, step: LocalFakeStep, status_queue):
     step.state = EmrStepState.RUNNING
     step.start()
     try:
         status_queue.put(step)
-        spark_result = config.exec_impl.exec_process(config, step)
+        spark_result = exec_impl.exec_process(step)
         step = make_step_terminal(step, spark_result.failure_details, spark_result.state)
         status_queue.put(step)
 
@@ -50,8 +57,8 @@ def process_step(config: Configuration, step: LocalFakeStep, status_queue):
         status_queue.put(step)
 
 
-def read_task_queue(
-        config: Configuration,
+def run_fork_exec(
+        fork_exec: ForkExec,
         step_process_queue: Queue,
         step_status_queue: Queue,
         cluster_process_queue: Queue,
@@ -64,13 +71,13 @@ def read_task_queue(
             else:
                 cluster_status_queue.put(ClusterSubset(state=EmrClusterState.RUNNING))
                 step = step_process_queue.get()
-                process_step(config, step, step_status_queue)
+                process_step(fork_exec.exec, step, step_status_queue)
         else:
             cluster_subset = cluster_process_queue.get()
             if cluster_subset.state == EmrClusterState.STARTING:
-                config.fork_impl.create_process(config, cluster_subset, cluster_status_queue)
+                fork_exec.fork.create_process(cluster_subset, cluster_status_queue)
             elif cluster_subset.state == EmrClusterState.TERMINATING:
-                config.fork_impl.terminate_process(config, cluster_subset, cluster_status_queue)
+                fork_exec.fork.terminate_process(cluster_subset, cluster_status_queue)
                 return
             else:
                 raise ValueError(

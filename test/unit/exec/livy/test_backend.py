@@ -1,7 +1,7 @@
 from test.fixtures.example_steps import EXAMPLE_STEP
 import pytest
-import localemr.livy.backend as livy
-from localemr.livy.models import LivyRequestBody
+import localemr.exec.livy.backend as livy
+from localemr.exec.livy.models import LivyRequestBody
 
 
 def test_from_dash_to_snake_case():
