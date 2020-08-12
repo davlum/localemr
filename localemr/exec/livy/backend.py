@@ -172,4 +172,4 @@ class Livy(ExecInterface):
         self.config = config
 
     def exec_process(self, emr_step: LocalFakeStep):
-        return send_step_to_livy(self.config, emr_step.args, emr_step.hostname)
+        return send_step_to_livy(self.config, emr_step.hostname, emr_step.args)
