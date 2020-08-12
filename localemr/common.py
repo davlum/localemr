@@ -1,5 +1,5 @@
 """
-TODO: This is a shittily named module to solve circular deps between the livy packge and .models. Make it better.
+TODO: This is a shittily named module to solve circular dependencies. Make it better.
 """
 import re
 from datetime import datetime
