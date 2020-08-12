@@ -1,6 +1,37 @@
 """
-TODO: This is a shittily named module to solve circular deps between the livy pacakge and .models. Make it better.
+TODO: This is a shittily named module to solve circular deps between the livy packge and .models. Make it better.
 """
+import re
+from datetime import datetime
+from distutils.version import StrictVersion
+import pytz
+from moto.emr.models import FakeStep
+from moto.emr.exceptions import EmrError
+
+
+class ClusterSubset:
+    def __init__(self, state, name=None, release_label=None, start_datetime=None, ready_datetime=None,
+                 end_datetime=None):
+        self.name = name
+        self.release_label = release_label
+        self.state = state
+        self.start_datetime = start_datetime
+        self.ready_datetime = ready_datetime
+        self.end_datetime = end_datetime
+
+    def run_bootstrap_actions(self):
+        self.ready_datetime = datetime.now(pytz.utc)
+        self.state = EmrClusterState.WAITING
+
+
+class LocalFakeStep(FakeStep):
+    def __init__(self, hostname, **kwargs):
+        super().__init__(**kwargs)
+        self.failure_details = FailureDetails()
+        self.hostname = hostname
+
+    def start(self):
+        self.start_datetime = datetime.now(pytz.utc)
 
 
 class FailureDetails:
@@ -82,3 +113,52 @@ EMR_TO_APPLICATION_VERSION = {
     '5.27.0': {'Spark': '2.4.4'},
     '6.0.0': {'Spark': '2.4.5'},
 }
+
+
+def parse_release_label(cluster_release_label):
+    try:
+        return re.findall(r'emr-(\d+\.\d+\.\d+)', cluster_release_label)[0]
+    except IndexError:
+        aws_docs = 'https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-release-components.html'
+        message = "{} is not a valid emr release label. See {} for more info".format(
+            cluster_release_label, aws_docs
+        )
+        raise EmrError(
+            error_type="ValidationException",
+            message=message,
+            template="error_json",
+
+        )
+
+
+def get_emr_version(cluster_release_label):
+    """
+    Parameters
+    ----------
+    cluster_release_label : a string of form 'emr-{semver}'
+
+    Returns
+    -------
+    The corresponding EMR version
+
+    Assumes the EMR versions from EMR_VERSION_TO_APPLICATION_VERSION are sorted smallest to largest
+    """
+    emr_version = parse_release_label(cluster_release_label)
+    parsed_emr_version = StrictVersion(emr_version)
+    versions = list(EMR_TO_APPLICATION_VERSION.keys())
+    last_version = versions[0]
+    if parsed_emr_version <= StrictVersion(last_version):
+        return last_version
+    for current_version in versions[1:]:
+        parsed_current_version = StrictVersion(current_version)
+        if parsed_emr_version == parsed_current_version:
+            return emr_version
+        if StrictVersion(last_version) < parsed_emr_version < parsed_current_version:
+            return last_version
+        last_version = current_version
+
+    return versions[-1]
+
+
+def cluster_to_spark_version(cluster: ClusterSubset) -> dict:
+    return EMR_TO_APPLICATION_VERSION[get_emr_version(cluster.release_label)]

@@ -7,10 +7,11 @@ from xml.sax.saxutils import escape
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from localemr.common import SparkResult, FailureDetails, EmrStepState
+from localemr.common import SparkResult, FailureDetails, EmrStepState, LocalFakeStep
 from localemr.config import Configuration
-from localemr.livy.exceptions import LivyError
-from localemr.livy.models import *
+from localemr.exec.interface import ExecInterface
+from localemr.exec.livy.exceptions import LivyError
+from localemr.exec.livy.models import *
 
 
 def from_dash_to_snake_case(conf_key: str):
@@ -137,6 +138,7 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
     https://docs.aws.amazon.com/emr/latest/APIReference/API_FailureDetails.html
 
     """
+    hostname = 'http://{}:8998'.format(hostname)
     if config.convert_to_mock_s3:
         cli_args = convert_s3_to_s3a_path(cli_args)
     livy_step = transform_emr_to_livy(cli_args)
@@ -162,3 +164,10 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
         )
 
     raise LivyError("Quit polling Livy in non-terminal state %s" % livy_batch.state)
+
+
+class Livy(ExecInterface):
+
+    @staticmethod
+    def exec_process(config: Configuration, emr_step: LocalFakeStep):
+        return send_step_to_livy(config, emr_step.args, emr_step.hostname)
