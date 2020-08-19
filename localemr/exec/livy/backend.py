@@ -3,54 +3,34 @@ import json
 import time
 import logging
 from typing import List
-from xml.sax.saxutils import escape
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from localemr.common import SparkResult, FailureDetails, EmrStepState, LocalFakeStep
+from localemr.common import (
+    SparkResult,
+    FailureDetails,
+    EmrStepState,
+    LocalFakeStep,
+    EmrRequest,
+    extract_conf_until_jar
+)
 from localemr.config import Configuration
 from localemr.exec.interface import ExecInterface
 from localemr.exec.livy.exceptions import LivyError
 from localemr.exec.livy.models import *
 
 
-def from_dash_to_snake_case(conf_key: str):
-    if conf_key[:2] != '--':
-        raise ValueError("`%s` is not a --conf param")
-    return conf_key[2:].replace('-', '_')
-
-
-# pylint: disable=inconsistent-return-statements
-def extract_conf_until_jar(args: List[str]) -> LivyRequestBody:
-    spark_conf = {}
-    livy_step = {}
-    it = iter(args)
-    for key in it:
-        if key.startswith('--'):
-            val = next(it)
-            camel_key = from_dash_to_snake_case(key)
-            if camel_key == 'conf':
-                key_val_ls = val.split("=", 1)
-                if len(key_val_ls) != 2:
-                    raise ValueError("spark --conf `{}` is badly formatted".format(val))
-                spark_conf[key_val_ls[0]] = key_val_ls[1]
-            else:
-                livy_step[camel_key] = val
-        elif '.jar' in key:
-            return LivyRequestBody(
-                class_name=livy_step.get('class'),
-                conf=spark_conf,
-                args=list(it),
-                file=key,
-                **livy_step
-            )
-        else:
-            raise ValueError("Emr step is not of expected format {}".format(args))
+def transform_emr_req_to_livy_req(r: EmrRequest) -> LivyRequestBody:
+    return LivyRequestBody(
+        file=r.file,
+        conf=r.conf,
+        **r.emr_request_config.to_dict()
+    )
 
 
 def transform_emr_to_livy(cli_args) -> LivyRequestBody:
     if 'spark-submit' in cli_args[0]:
-        return extract_conf_until_jar(cli_args[1:])
+        return transform_emr_req_to_livy_req(extract_conf_until_jar(cli_args))
     raise ValueError("Unsupported command `%s`" % cli_args[0])
 
 
@@ -159,7 +139,7 @@ def send_step_to_livy(config: Configuration, hostname: str, cli_args: List[str])
             EmrStepState.FAILED,
             FailureDetails(
                 reason='Unknown Error',
-                log_file=escape('\n'.join(get_batch_logs(hostname, livy_batch.id)['log'])),
+                log_file='\n'.join(get_batch_logs(hostname, livy_batch.id)['log']),
             )
         )
 
