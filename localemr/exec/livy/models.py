@@ -1,5 +1,6 @@
 import inspect
 from typing import List, Dict, Optional
+from localemr.common import from_snake_to_camel_case
 
 
 class LivyState:
@@ -63,15 +64,7 @@ class LivyRequestBody:
     def to_dict(self):
         constructor_args = set(inspect.signature(LivyRequestBody).parameters.keys())
         intersection = constructor_args.intersection(set(dir(self)))
-        return {
-            self.from_snake_to_camel_case(k): getattr(self, k) for k in intersection if getattr(self, k) is not None
-        }
-
-    @staticmethod
-    def from_snake_to_camel_case(s: str):
-        words = s.split('_')
-        word_ls = [words[0]] + list(map(lambda w: w.capitalize(), words[1:]))
-        return ''.join(word_ls)
+        return {from_snake_to_camel_case(k): getattr(self, k) for k in intersection if getattr(self, k) is not None}
 
 
 class LivyBatchObject:

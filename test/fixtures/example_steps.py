@@ -1,4 +1,4 @@
-MAX_WAIT = 20
+MAX_WAIT = 30
 
 EXAMPLE_STEP = {
     'Name': 'EMR Job',
@@ -26,7 +26,6 @@ EXAMPLE_STEP = {
     }
 }
 
-
 S3_STEP = {
     'Name': 'EMR Job',
     'ActionOnFailure': 'CONTINUE',
@@ -39,9 +38,40 @@ S3_STEP = {
             '--name', 'test',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
+            '--conf', 'spark.shuffle.service.enabled=true',
             's3a://bucket/tmp/localemr/word-count.jar',
             's3a://bucket/key/2020-05/03/*/*.txt',
             's3a://bucket/tmp/localemr/output',
         ]
     }
+}
+
+HADOOP_STEP = {
+    'Name': 'Test Jar step',
+    'ActionOnFailure': 'CONTINUE',
+    'HadoopJarStep': {
+        'Jar': '',
+        'Args': [
+            '-D', 'mapreduce.job.reduce.slowstart.completedmaps=1.0',
+            '-D', 'mapreduce.input.fileinputformat.split.minsize=536870912',
+            '-D', 'mapreduce.input.fileinputformat.split.maxsize=536870912',
+            '-D', 'mapreduce.client.genericoptionsparser.used=true',
+            '-D', 'mapreduce.job.user.classpath.first=true',
+            '-D', 'mapreduce.map.speculative=false',
+            '-D', 'mapreduce.reduce.speculative=false',
+            "-D", "attribution.start={{ macros.adgear.tstamp_date_fmt(execution_date) }}",
+            "-D", "attribution.end={{ macros.adgear.tstamp_date_fmt(execution_date) }}",
+            "-D", "attribution.hour={{ macros.adgear.tstamp_date_fmt(execution_date) }}",
+            "-D", "attribution.creditingWindowSeconds=5184000",
+            '-D', 'attribution.max.stream.size=65535',
+            '-D', 'attribution.filter.false.positive=0.1',
+            '-D', 'attribution.filter.max.count=50000000',
+            '-D', 'aws.access_key={{ macros.adgear.get_aws_login_params("aws_etl")["access_key"] }}',
+            '-D', 'aws.secret_key={{ macros.adgear.get_aws_login_params("aws_etl")["secret_key"] }}',
+            '-D', 'aws.region={{ macros.adgear.get_aws_login_params("aws_etl")["region"] }}',
+            '-D', 's3.metadata.service.url={{ macros.adgear.s3_metadata_url("s3_metadata_conn") }}',
+            "-XX", "MaxInlineLevel=18",
+        ],
+        'MainClass': 'com.adgear.data.attribution.AttributionApp',
+    },
 }

@@ -3,6 +3,11 @@ import os
 from localemr.config import Configuration
 
 
+def get_subprocess_impl(config: Configuration):
+    from localemr.exec.subprocess.models import Subprocess
+    return Subprocess(config)
+
+
 def get_livy_impl(config: Configuration):
     from localemr.exec.livy.backend import Livy
     # Which directories livy can read files from

@@ -1,17 +1,11 @@
-from datetime import datetime
 import re
 import logging
 from multiprocessing import Queue
-import pytz
 import docker
 from docker.errors import NotFound, APIError
 from localemr.fork.interface import ForkInterface
 from localemr.config import Configuration
-from localemr.common import (
-    EmrClusterState,
-    ClusterSubset,
-    cluster_to_spark_version,
-)
+from localemr.common import ClusterSubset, cluster_to_spark_version
 
 
 class Docker(ForkInterface):
@@ -49,17 +43,16 @@ class Docker(ForkInterface):
                 logging.exception("Container %s not found, could not remove", cluster.name)
             else:
                 raise e
-        cluster.end_datetime = datetime.now(pytz.utc)
-        cluster.state = EmrClusterState.TERMINATED
+        cluster.run_termination_actions()
         status_queue.put(cluster)
 
     def create_process(self, cluster: ClusterSubset, status_queue: Queue):
         localemr_container = self.get_localemr_container()
 
-        application_versions = cluster_to_spark_version(cluster)
+        spark_version = cluster_to_spark_version(cluster)
         container_image = '{repo}{spark_version}'.format(
             repo=self.config.localemr_container_repo,
-            spark_version=application_versions['Spark']
+            spark_version=spark_version,
         )
         env = {
             'LOCAL_DIR_WHITELIST': self.config.local_dir_whitelist,

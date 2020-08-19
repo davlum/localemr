@@ -8,8 +8,8 @@ def is_true(bool_thing) -> bool:
 class Configuration:
 
     def __init__(self):
-        self.exec_impl = os.environ.get('LOCALEMR_EXEC_IMPL', 'livy')
-        self.fork_impl = os.environ.get('LOCALEMR_FORK_IMPL', 'docker')
+        self.exec_impl = os.environ.get('LOCALEMR_EXEC_IMPL', 'subprocess')
+        self.fork_impl = os.environ.get('LOCALEMR_FORK_IMPL', 'wget')
 
         # If true, adds the necessary configuration to use a mocked instance of S3
         # based on https://github.com/sumitsu/s3_mocktest_demo

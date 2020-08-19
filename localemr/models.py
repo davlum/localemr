@@ -50,7 +50,13 @@ class LocalFakeCluster(FakeCluster):
     def add_steps(self, steps):
         added_steps = []
         for step in steps:
-            fake = LocalFakeStep(state=EmrStepState.PENDING, hostname=self.name, **step)
+            fake = LocalFakeStep(
+                state=EmrStepState.PENDING,
+                hostname=self.name,
+                cluster_id=self.id,
+                cluster_name=self.name,
+                **step,
+            )
             self.step_process_queue.put(fake)
             self.steps.append(fake)
             added_steps.append(fake)
