@@ -10,6 +10,9 @@ ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
 ENV HADOOP_HOME /opt/hadoop
 ENV HADOOP_CONF_DIR $HADOOP_HOME/etc/hadoop
 ENV PATH ${HADOOP_HOME}/bin:$PATH
+ENV AWS_ACCESS_KEY_ID TESTING
+ENV AWS_SECRET_ACCESS_KEY TESTING
+ENV S3_ENDPOINT http://s3:2000
 
 RUN apt-get update -y && apt-get install -y openjdk-8-jre-headless && apt-get clean
 
@@ -66,7 +69,7 @@ COPY --from=build /opt/wc-mapreduce.jar /opt/hadoop/wc-mapreduce.jar
 
 COPY . .
 
-CMD ["python3", "main.py"]
+CMD ["./entrypoint.sh"]
 
 ###################
 # Fetch test deps #
@@ -76,5 +79,3 @@ FROM app AS test
 COPY requirements-dev.txt .
 
 RUN pip install --no-cache-dir -r requirements-dev.txt
-
-CMD ["python3", "main.py"]
