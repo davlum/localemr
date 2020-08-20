@@ -38,7 +38,7 @@ os.environ['AWS_SECRET_ACCESS_KEY'] = 'testing'
 s3 = boto3.client('s3', endpoint_url="http://localhost:2000")
 bucket = 'bucket'
 s3.create_bucket(Bucket=bucket)
-s3.upload_file('test/fixtures/word-count.jar', bucket, 'tmp/localemr/word-count.jar')
+s3.upload_file('test/fixtures/wc-spark.jar', bucket, 'tmp/localemr/wc-spark.jar')
 s3.put_object(Bucket=bucket, Key='key/2020-05/03/02/part.txt', Body="hello goodbye")  # Will be returned
 s3.put_object(Bucket=bucket, Key='key/2020-05/03/05/part.txt', Body="hello")  # Will be returned
 s3.put_object(Bucket=bucket, Key='key/2020-05/02/02/part.txt', Body="goodbye")  # Won't be returned
@@ -57,7 +57,7 @@ step = {
             '--name', 'test',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
-            's3a://bucket/tmp/localemr/word-count.jar',
+            's3a://bucket/tmp/localemr/wc-spark.jar',
             's3a://bucket/key/2020-05/03/*/*.txt',
             's3a://bucket/tmp/localemr/output',
         ]
