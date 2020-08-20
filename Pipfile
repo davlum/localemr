@@ -10,7 +10,6 @@ pylint = {version = "==2.5.3"}
 
 [packages]
 moto = {extras = ["server"], version = "==1.3.14"}
-docker = "==4.2.0"
 
 [requires]
 python_version = "3.7"
