@@ -33,6 +33,7 @@ class LocalFakeCluster(FakeCluster):
 
         self.cluster_process_queue = Queue()
         self.cluster_status_queue = Queue()
+        # Use latest release if none is specified
         self.release_label = self.release_label or 'emr-' + list(EMR_TO_APPLICATION_VERSION.keys())[-1]
 
     def run_bootstrap_actions(self):
@@ -55,6 +56,7 @@ class LocalFakeCluster(FakeCluster):
                 hostname=self.name,
                 cluster_id=self.id,
                 cluster_name=self.name,
+                main_class=step.pop('hadoop_jar_step._main_class', None),
                 **step,
             )
             self.step_process_queue.put(fake)
