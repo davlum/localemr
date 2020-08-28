@@ -50,32 +50,27 @@ RUN jar -cvf /opt/non-chunked-default-s3-clientfactory.jar -C /opt/s3_client_fac
 ######################
 FROM base AS app
 
-COPY requirements.txt /requirements.txt
+WORKDIR /opt/localemr
+
+COPY . .
 
 RUN apt-get update -y && apt-get install -y \
-    python3.7 \
-    python3-pip \
+    pipenv \
   && apt-get clean \
-  && pip install --no-cache-dir -r requirements.txt \
-  && mkdir /opt/localemr \
+  && pipenv install --ignore-pipfile \
   && mkdir /opt/hadoop
-
-WORKDIR /opt/localemr
 
 COPY --from=build /opt/hadoop /opt/hadoop/
 COPY --from=build /opt/non-chunked-default-s3-clientfactory.jar /opt/hadoop/share/hadoop/common/
 COPY conf/core-site.xml /opt/hadoop/etc/hadoop/core-site.xml
 COPY --from=build /opt/wc-mapreduce.jar /opt/hadoop/wc-mapreduce.jar
 
-COPY . .
-
-CMD ["./entrypoint.sh"]
+CMD ["pipenv", "run", "./entrypoint.sh"]
 
 ###################
 # Fetch test deps #
 ####################
 FROM app AS test
 
-COPY requirements-dev.txt .
+RUN pipenv install --dev
 
-RUN pip install --no-cache-dir -r requirements-dev.txt
