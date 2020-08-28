@@ -28,5 +28,4 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         repository: davlum/localemr
         tags: latest,${{ steps.gettag.outputs.tag }}
-        target: app
 
