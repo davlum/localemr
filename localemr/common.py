@@ -32,7 +32,65 @@ class ClusterSubset:
 
 
 AWS_SCRIPT_RUNNERS = {'command-runner.jar', 'script-runner.jar'}
-UNWANTED_CONFIGS = ['--master', '--num-executors', '--driver-memory', '--executor-memory', '--deploy-mode']
+UNWANTED_CONFIGS = {'--master', '--num-executors', '--driver-memory', '--executor-memory', '--deploy-mode'}
+UNWANTED_CONF_CONFIGS = {'spark.driver.extraJavaOptions', 'spark.executor.extraJavaOptions'}
+
+
+def extract_basename_if_not_exists(command: str) -> str:
+    return command if os.path.exists(command) or os.path.islink(command) else os.path.basename(command)
+
+
+def get_substr_index(ls_string: List[str], substring: str) -> int:
+    """
+    Parameters
+    ----------
+    ls_string : list of strings to find the substring in
+    substring : the substring
+
+    Returns
+    -------
+    int of index of the first substr match in the list, -1 if the substr doesn't exist
+    """
+    for i, ele in enumerate(ls_string):
+        if substring in ele:
+            return i
+    return -1
+
+
+def remove_to_the_right(ls: list, i: int):
+    return ls if i < 0 else ls[:i] + ls[i + 2:]
+
+
+def remove_to_the_left(ls: list, i: int):
+    return ls if i < 1 else ls[:i - 1] + ls[i + 1:]
+
+
+def convert_s3_to_s3a_path(emr_step: List[str]) -> List[str]:
+    return [re.sub(r's3://|s3n://', 's3a://', v) for v in emr_step]
+
+
+def filter_unwanted_config(args: List[str], unwanted_configs=None):
+    unwanted_configs = unwanted_configs or UNWANTED_CONFIGS
+    for conf in unwanted_configs:
+        if conf in args:
+            i = args.index(conf)
+            args = remove_to_the_right(args, i)
+    return args
+
+
+def filter_unwanted_conf_config(args: List[str], unwanted_configs=None):
+    unwanted_configs = unwanted_configs or UNWANTED_CONF_CONFIGS
+    for conf in unwanted_configs:
+        i = get_substr_index(args, conf)
+        args = remove_to_the_left(args, i)
+    return args
+
+
+def clean_for_local_run(emr_step: List[str]) -> List[str]:
+    return convert_s3_to_s3a_path(
+        filter_unwanted_conf_config(
+            filter_unwanted_config(emr_step)
+        ))
 
 
 class LocalFakeStep(FakeStep):
@@ -55,34 +113,9 @@ class LocalFakeStep(FakeStep):
 
     def to_cli_args(self) -> List[str]:
         if self.jar in AWS_SCRIPT_RUNNERS:
-            return self.clean_for_local_run([self.extract_basename_if_not_exists(self.args[0])] + self.args[1:])
+            return clean_for_local_run([extract_basename_if_not_exists(self.args[0])] + self.args[1:])
 
-        return self.clean_for_local_run(['hadoop', 'jar', self.jar, self.main_class] + self.args)
-
-    @staticmethod
-    def extract_basename_if_not_exists(command: str) -> str:
-        return command if os.path.exists(command) or os.path.islink(command) else os.path.basename(command)
-
-    @staticmethod
-    def filter_unwanted_config(args: List[str], unwanted_configs=None):
-        unwanted_configs = unwanted_configs or UNWANTED_CONFIGS
-        for conf in unwanted_configs:
-            if conf in args:
-                i = args.index(conf)
-                args = LocalFakeStep.remove_beside(args, i)
-        return args
-
-    @staticmethod
-    def remove_beside(ls: list, i: int):
-        return ls if i < 0 else ls[:i] + ls[i + 2:]
-
-    @staticmethod
-    def convert_s3_to_s3a_path(emr_step: List[str]) -> List[str]:
-        return [re.sub(r's3://|s3n://', 's3a://', v) for v in emr_step]
-
-    @staticmethod
-    def clean_for_local_run(emr_step: List[str]) -> List[str]:
-        return LocalFakeStep.convert_s3_to_s3a_path(LocalFakeStep.filter_unwanted_config(emr_step))
+        return clean_for_local_run(['hadoop', 'jar', self.jar, self.main_class] + self.args)
 
 
 class FailureDetails:
