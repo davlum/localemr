@@ -1,8 +1,8 @@
-from localemr.common import get_emr_version, LocalFakeStep
+from localemr.common import get_emr_version, clean_for_local_run
 
 
 def test_clean_for_local_run():
-    assert LocalFakeStep.clean_for_local_run([
+    assert clean_for_local_run([
         '/usr/bin/spark-submit',
         '--master', 'yarn',
         '--deploy-mode', 'cluster',
@@ -13,6 +13,8 @@ def test_clean_for_local_run():
         '--conf', 'spark.driver.cores=1',
         '--conf', 'spark.yarn.maxAppAttempts=1',
         '--conf', 'spark.shuffle.service.enabled=true',
+        '--conf', 'spark.driver.extraJavaOptions=-XX:+UseParallelGC -XX:+UseParallelOldGC -XX:+PrintFlagsFinal -XX:+PrintReferenceGC',
+        '--conf', 'spark.executor.extraJavaOptions=-XX:+UseParallelGC -XX:+UseParallelOldGC -XX:+PrintFlagsFinal -XX:+PrintReferenceGC',
         's3://bucket/tmp/localemr/wc-spark.jar',
         's3n://bucket/key/2020-05/03/*/*.txt',
         's3a://bucket/tmp/localemr/output',
