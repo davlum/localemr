@@ -26,6 +26,8 @@ LIVY_RUNNING_STATES = [
 
 LIVY_STATES = LIVY_TERMINAL_STATES + LIVY_RUNNING_STATES
 
+FILTERED_CONFIG = {'extraJavaOptions'}
+
 
 class LivyRequestBody:
     """
@@ -58,7 +60,7 @@ class LivyRequestBody:
         self.archives = archives.split(',') if isinstance(archives, str) else archives
         self.queue = queue
         self.name = name
-        self.conf = conf
+        self.conf = self.filter_config(conf)
 
     def to_dict(self):
         constructor_args = set(inspect.signature(LivyRequestBody).parameters.keys())
@@ -66,6 +68,10 @@ class LivyRequestBody:
         return {
             self.from_snake_to_camel_case(k): getattr(self, k) for k in intersection if getattr(self, k) is not None
         }
+
+    @staticmethod
+    def filter_config(conf):
+        return {k: v for k, v in conf.items() if not any([c in k for c in FILTERED_CONFIG])}
 
     @staticmethod
     def from_snake_to_camel_case(s: str):

@@ -16,6 +16,7 @@ EXAMPLE_STEP = {
             '--executor-memory', '30G',
             '--conf', 'spark.driver.cores=1',
             '--conf', 'spark.yarn.maxAppAttempts=1',
+            '--conf', 'spark.driver.extraJavaOptions=-XX:+UseParallelGC -XX:+UseParallelOldGC -XX:+PrintFlagsFinal -XX:+PrintReferenceGC',
             '/tmp/example-bucket/artifacts/jar-with-dependencies.jar',
             '--output-path=/ccpa/delete',
             '--partitions=512',
