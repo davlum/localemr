@@ -9,7 +9,7 @@ flake8 = {version = "==3.8.1"}
 pylint = {version = "==2.5.3"}
 
 [packages]
-moto = {extras = ["server"], version = "==1.3.14"}
+moto = {extras = ["server"], version = "==1.3.16"}
 
 [requires]
 python_version = "3.7"
