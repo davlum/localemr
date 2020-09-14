@@ -2,8 +2,8 @@
 set -o errexit -o nounset -o pipefail
 
 # run linter
-flake8 localemr test
-pylint localemr test
+pipenv run flake8 localemr test
+pipenv run pylint localemr test
 
 # run tests
-pytest -vv
+pipenv run pytest -vv

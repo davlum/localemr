@@ -10,7 +10,7 @@ from boto3 import Session
 from moto.emr.models import (
     FakeStep,
     FakeCluster,
-    ElasticMapReduceBackend
+    ElasticMapReduceBackend,
 )
 from localemr.config import configuration
 from localemr.fork_exec import ForkExec, run_fork_exec
@@ -20,7 +20,7 @@ from localemr.common import (
     EmrStepState,
     EMR_CLUSTER_TERMINAL_STATES,
     EMR_TO_APPLICATION_VERSION,
-    ClusterSubset
+    ClusterSubset,
 )
 
 
@@ -77,7 +77,7 @@ class LocalFakeCluster(FakeCluster):
             state=self.state,
             start_datetime=self.start_datetime,
             ready_datetime=self.ready_datetime,
-            end_datetime=self.end_datetime
+            end_datetime=self.end_datetime,
         )
 
 
@@ -120,7 +120,7 @@ class LocalElasticMapReduceBackend(ElasticMapReduceBackend):
                 fake_cluster.step_status_queue,
                 fake_cluster.cluster_process_queue,
                 fake_cluster.cluster_status_queue,
-            )
+            ),
         )
         step_reader_process.daemon = True
         step_reader_process.start()

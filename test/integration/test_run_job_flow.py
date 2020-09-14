@@ -21,7 +21,7 @@ def test_run_job_flow_terminates_with_no_steps():
         Instances={
             'MasterInstanceType': 'm4.xlarge',
             'SlaveInstanceType': 'm4.xlarge',
-        }
+        },
     )
     cluster_id = resp['JobFlowId']
     resp = client.describe_job_flows(JobFlowIds=[cluster_id])
@@ -54,7 +54,7 @@ def test_run_job_flow_continues_with_no_steps():
             'MasterInstanceType': 'm4.xlarge',
             'SlaveInstanceType': 'm4.xlarge',
             'KeepJobFlowAliveWhenNoSteps': True,
-        }
+        },
     )
     cluster_id = resp['JobFlowId']
     resp = client.describe_job_flows(JobFlowIds=[cluster_id])

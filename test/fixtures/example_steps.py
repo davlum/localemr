@@ -22,8 +22,8 @@ EXAMPLE_STEP = {
             '--final-output-concurrency=256',
             '--graphite-port=2003',
             '--max-age-in-days=180',
-        ]
-    }
+        ],
+    },
 }
 
 S3_STEP = {
@@ -42,8 +42,8 @@ S3_STEP = {
             's3a://bucket/tmp/localemr/wc-spark.jar',
             's3a://bucket/key/2020-05/03/*/*.txt',
             's3a://bucket/tmp/localemr/output',
-        ]
-    }
+        ],
+    },
 }
 
 MAPREDUCE_STEP = {
