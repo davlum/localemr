@@ -50,7 +50,7 @@ def process_step(exec_impl: ExecInterface, step: LocalFakeStep, status_queue):
     except Exception as e:
         failure_details = FailureDetails(
             reason='Unknown Reason',
-            message=escape(traceback.format_exc())
+            message=escape(traceback.format_exc()),
         )
         step = make_step_terminal(step, failure_details, EmrStepState.FAILED)
         logging.exception(e)
@@ -82,5 +82,5 @@ def run_fork_exec(
             else:
                 raise ValueError(
                     "Should only be processing cluster actions on States; "
-                    "STARTING and TERMINATING. State is; {}".format(cluster_subset.state)
+                    "STARTING and TERMINATING. State is; {}".format(cluster_subset.state),
                 )

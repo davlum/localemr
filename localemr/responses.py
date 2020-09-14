@@ -41,7 +41,7 @@ class LocalElasticMapReduceResponse(ElasticMapReduceResponse):
         step_ids = self._get_multi_param("StepIds.member")
         step_states = self._get_multi_param("StepStates.member")
         steps, marker = self.backend.list_steps(
-            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states
+            cluster_id, marker=marker, step_ids=step_ids, step_states=step_states,
         )
         template = self.response_template(LIST_STEPS_TEMPLATE)
         return template.render(steps=steps, marker=marker)

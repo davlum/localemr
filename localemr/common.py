@@ -89,7 +89,7 @@ def filter_unwanted_conf_config(args: List[str], unwanted_configs=None):
 def clean_for_local_run(emr_step: List[str]) -> List[str]:
     return convert_s3_to_s3a_path(
         filter_unwanted_conf_config(
-            filter_unwanted_config(emr_step)
+            filter_unwanted_config(emr_step),
         ))
 
 
@@ -145,7 +145,7 @@ class EmrStepState:
 EMR_STEP_TERMINAL_STATES = [
     EmrStepState.FAILED,
     EmrStepState.CANCELLED,
-    EmrStepState.INTERRUPTED
+    EmrStepState.INTERRUPTED,
 ]
 
 
@@ -174,7 +174,7 @@ class EmrClusterState:
 
 EMR_CLUSTER_TERMINAL_STATES = [
     EmrClusterState.TERMINATED,
-    EmrClusterState.TERMINATED_WITH_ERRORS
+    EmrClusterState.TERMINATED_WITH_ERRORS,
 ]
 
 # There must be a docker image on davlum/localemr-container
@@ -204,13 +204,12 @@ def parse_release_label(cluster_release_label):
     except IndexError:
         aws_docs = 'https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-release-components.html'
         message = "{} is not a valid emr release label. See {} for more info".format(
-            cluster_release_label, aws_docs
+            cluster_release_label, aws_docs,
         )
         raise EmrError(
             error_type="ValidationException",
             message=message,
             template="error_json",
-
         )
 
 

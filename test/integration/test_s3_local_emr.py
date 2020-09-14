@@ -1,6 +1,6 @@
 import time
 from io import StringIO
-from test.fixtures.example_steps import S3_STEP, MAX_WAIT, MAPREDUCE_STEP
+from test.fixtures.example_steps import S3_STEP, MAX_WAIT
 import pytest
 import boto3
 import pandas as pd
@@ -65,44 +65,44 @@ def test_run_spark_step_with_s3():
     raise TimeoutError("Test timed out and failed")
 
 
-def test_run_mapreduce_step_with_s3():
-    conn = boto3.client('s3', endpoint_url="http://s3:2000")
-    bucket = 'bucket'
-    conn.put_object(Bucket=bucket, Key='user/joe/wordcount/input/file01', Body="Hello World Bye World")  # Will be returned
-    conn.put_object(Bucket=bucket, Key='user/joe/wordcount/input/file02', Body="Hello Hadoop Goodbye Hadoop")  # Will be returned
-    emr = boto3.client(
-        service_name='emr',
-        region_name='us-east-1',
-        endpoint_url='http://localhost:3000',
-    )
-    resp = emr.run_job_flow(
-        Name="log-etl-dev",
-        ReleaseLabel='emr-5.29.0',
-        Instances={
-            'MasterInstanceType': 'm4.xlarge',
-            'SlaveInstanceType': 'm4.xlarge',
-            'InstanceCount': 3,
-            'KeepJobFlowAliveWhenNoSteps': True,
-        },
-
-    )
-
-    cluster_id = resp["JobFlowId"]
-
-    add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[MAPREDUCE_STEP])
-    first_step_ip = add_response['StepIds'][0]
-    wait_counter = 0
-    while wait_counter != MAX_WAIT:
-        time.sleep(5)
-        resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
-        state = resp['Step']['Status']['State']
-        if state in EmrStepState.COMPLETED:
-            obj = conn.get_object(Bucket=bucket, Key="user/joe/wordcount/output/part-r-00000")
-            result = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')), header=None, sep='\t')
-            assert set(map(tuple, result.values.tolist())) == {("Goodbye", 1), ("Hadoop", 2), ("Hello", 2), ("World", 2), ("Bye", 1)}
-            return
-        if state in EMR_STEP_TERMINAL_STATES:
-            raise ValueError("Job failed with status; {}".format(state))
-        wait_counter = wait_counter + 1
-
-    raise TimeoutError("Test timed out and failed")
+# def test_run_mapreduce_step_with_s3():
+#     conn = boto3.client('s3', endpoint_url="http://s3:2000")
+#     bucket = 'bucket'
+#     conn.put_object(Bucket=bucket, Key='user/joe/wordcount/input/file01', Body="Hello World Bye World")  # Will be returned
+#     conn.put_object(Bucket=bucket, Key='user/joe/wordcount/input/file02', Body="Hello Hadoop Goodbye Hadoop")  # Will be returned
+#     emr = boto3.client(
+#         service_name='emr',
+#         region_name='us-east-1',
+#         endpoint_url='http://localhost:3000',
+#     )
+#     resp = emr.run_job_flow(
+#         Name="log-etl-dev",
+#         ReleaseLabel='emr-5.29.0',
+#         Instances={
+#             'MasterInstanceType': 'm4.xlarge',
+#             'SlaveInstanceType': 'm4.xlarge',
+#             'InstanceCount': 3,
+#             'KeepJobFlowAliveWhenNoSteps': True,
+#         },
+#
+#     )
+#
+#     cluster_id = resp["JobFlowId"]
+#
+#     add_response = emr.add_job_flow_steps(JobFlowId=cluster_id, Steps=[MAPREDUCE_STEP])
+#     first_step_ip = add_response['StepIds'][0]
+#     wait_counter = 0
+#     while wait_counter != MAX_WAIT:
+#         time.sleep(5)
+#         resp = emr.describe_step(ClusterId=cluster_id, StepId=first_step_ip)
+#         state = resp['Step']['Status']['State']
+#         if state in EmrStepState.COMPLETED:
+#             obj = conn.get_object(Bucket=bucket, Key="user/joe/wordcount/output/part-r-00000")
+#             result = pd.read_csv(StringIO(obj['Body'].read().decode('utf-8')), header=None, sep='\t')
+#             assert set(map(tuple, result.values.tolist())) == {("Goodbye", 1), ("Hadoop", 2), ("Hello", 2), ("World", 2), ("Bye", 1)}
+#             return
+#         if state in EMR_STEP_TERMINAL_STATES:
+#             raise ValueError("Job failed with status; {}".format(state))
+#         wait_counter = wait_counter + 1
+#
+#     raise TimeoutError("Test timed out and failed")
