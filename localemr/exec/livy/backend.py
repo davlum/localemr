@@ -26,7 +26,8 @@ def extract_spark_conf_from_args(fake_step: LocalFakeStep, cli_args: iter):
             # Gathered all the Spark related configuration, which is placed before the jar
             file = elem
             break
-        elif elem in UNWANTED_SPARK_CONFIGS:
+
+        if elem in UNWANTED_SPARK_CONFIGS:
             next(cli_args)
             continue
         elif elem == '--class':
