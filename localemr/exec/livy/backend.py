@@ -30,7 +30,8 @@ def extract_spark_conf_from_args(fake_step: LocalFakeStep, cli_args: iter):
         if elem in UNWANTED_SPARK_CONFIGS:
             next(cli_args)
             continue
-        elif elem == '--class':
+
+        if elem == '--class':
             livy_args['class_name'] = next(cli_args)
         elif elem == '--proxy-user':
             livy_args['proxy_user'] = next(cli_args)
