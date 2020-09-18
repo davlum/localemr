@@ -65,7 +65,7 @@ UNWANTED_SPARK_CONFIGS = {
     '--executor-cores',
     '--queue',
     '--principal',
-    '--archives'
+    '--archives',
 }
 
 UNWANTED_CONF_CONFIGS = {'spark.driver.extraJavaOptions', 'spark.executor.extraJavaOptions'} | {

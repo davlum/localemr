@@ -1,8 +1,5 @@
-import re
-import json
 import time
 import logging
-from typing import List
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -51,7 +48,7 @@ def extract_spark_conf_from_args(fake_step: LocalFakeStep, cli_args: iter):
         file=file,
         conf=spark_conf,
         args=list(cli_args),
-        **livy_args
+        **livy_args,
     )
 
 
@@ -120,7 +117,7 @@ def send_step_to_livy(emr_step: LocalFakeStep) -> SparkResult:
     if livy_batch.state == LivyState.SUCCESS:
         return SparkResult(
             EmrStepState.COMPLETED,
-            FailureDetails()
+            FailureDetails(),
         )
     if livy_batch.state in (LivyState.ERROR, LivyState.DEAD):
         return SparkResult(
@@ -128,7 +125,7 @@ def send_step_to_livy(emr_step: LocalFakeStep) -> SparkResult:
             FailureDetails(
                 reason='Unknown Error',
                 log_file='\n'.join(get_batch_logs(hostname, livy_batch.id)['log']),
-            )
+            ),
         )
 
     raise LivyError("Quit polling Livy in non-terminal state %s" % livy_batch.state)

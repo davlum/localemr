@@ -1,4 +1,3 @@
-import inspect
 from typing import List, Dict, Optional
 from requests.exceptions import HTTPError
 
@@ -84,5 +83,5 @@ class LivyBatchObject:
             app_id=d['appId'],
             app_info=d['appInfo'],
             log=d['log'],
-            state=d['state']
+            state=d['state'],
         )
