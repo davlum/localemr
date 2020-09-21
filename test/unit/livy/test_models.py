@@ -32,5 +32,5 @@ def test_clean_for_local_run():
         'args': [
             's3a://bucket/key/2020-05/03/*/*.txt',
             's3a://bucket/tmp/localemr/output',
-        ]
+        ],
     }
