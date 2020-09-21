@@ -57,6 +57,7 @@ UNWANTED_SPARK_CONFIGS = {
     '--total-executor-cores',
     '--master',
     '--num-executors',
+    '--executor-memory',
     '--driver-memory',
     '--deploy-mode',
     '--driver-cores',

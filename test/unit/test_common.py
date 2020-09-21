@@ -22,7 +22,6 @@ def test_clean_for_local_run():
         '/usr/bin/spark-submit',
         '--class', 'com.oreilly.learningsparkexamples.mini.scala.WordCount',
         '--name', 'test',
-        '--conf', 'spark.driver.cores=1',
         '--conf', 'spark.yarn.maxAppAttempts=1',
         '--conf', 'spark.shuffle.service.enabled=true',
         's3a://bucket/tmp/localemr/wc-spark.jar',
