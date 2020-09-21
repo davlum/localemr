@@ -37,7 +37,7 @@ def extract_spark_conf_from_args(fake_step: LocalFakeStep, cli_args: iter):
             livy_args['proxy_user'] = next(cli_args)
         elif elem == '--conf':
             key_val = next(cli_args).split('=', 1)
-            if [key_val[0]] in UNWANTED_CONF_CONFIGS:
+            if key_val[0] in UNWANTED_CONF_CONFIGS:
                 continue
             spark_conf[key_val[0]] = key_val[1]
         else:
