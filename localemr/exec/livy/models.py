@@ -58,13 +58,14 @@ class LivyRequestBody:
         self.conf = conf
 
     def to_dict(self):
-        return {
+        d = {
             'file': self.file,
             'args': self.args,
             'conf': self.conf,
             'proxyUser': self.proxy_user,
             'className': self.class_name,
         }
+        return {k: v for k, v in d.items() if v is not None}
 
 
 class LivyBatchObject:

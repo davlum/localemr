@@ -137,7 +137,7 @@ class LocalFakeStep(FakeStep):
             hostname: str,
             cluster_id: str,
             cluster_name: str,
-            main_class: Optional[str],
+            main_class: Optional[str] = None,
             **kwargs):
         super().__init__(**kwargs)
         self.failure_details = FailureDetails()
