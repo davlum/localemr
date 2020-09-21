@@ -32,8 +32,46 @@ class ClusterSubset:
 
 
 AWS_SCRIPT_RUNNERS = {'command-runner.jar', 'script-runner.jar'}
-UNWANTED_CONFIGS = {'--master', '--num-executors', '--driver-memory', '--executor-memory', '--deploy-mode'}
-UNWANTED_CONF_CONFIGS = {'spark.driver.extraJavaOptions', 'spark.executor.extraJavaOptions'}
+# Mapping between spark-submit cli args and Spark configuration
+SPARK_CONF_MAP = {
+    '--name': 'spark.app.name',
+    '--master': 'spark.master',
+    '--deploy-mode': 'spark.submit.deployMode',
+    '--jars': 'spark.jars',
+    '--packages': 'spark.jars.packages',
+    '--exclude-packages': 'spark.jars.excludes',
+    '--repositories': 'spark.sql.maven.additionalRemoteRepositories',
+    '--py-files': 'spark.submit.pyFiles',
+    '--files': 'spark.files',
+    '--properties-file': '',
+    '--driver-memory': 'spark.driver.memory',
+    '--driver-java-options': 'spark.driver.defaultJavaOptions',
+    '--driver-library-path': 'spark.driver.extraLibraryPath',
+    '--driver-class-path': 'spark.driver.extracClassPath',
+    '--executor-memory': 'spark.executor.memory',
+    '--driver-cores': 'spark.driver.cores',
+    '--executor-cores': 'spark.executor.cores',
+}
+
+UNWANTED_SPARK_CONFIGS = {
+    '--total-executor-cores',
+    '--master',
+    '--num-executors',
+    '--executor-memory',
+    '--driver-memory',
+    '--deploy-mode',
+    '--driver-cores',
+    '--driver-java-options',
+    '--total-executor-cores',
+    '--executor-cores',
+    '--queue',
+    '--principal',
+    '--archives',
+}
+
+UNWANTED_CONF_CONFIGS = {'spark.driver.extraJavaOptions', 'spark.executor.extraJavaOptions'} | {
+    val for key, val in SPARK_CONF_MAP.items() if key in UNWANTED_SPARK_CONFIGS
+}
 
 
 def extract_basename_if_not_exists(command: str) -> str:
@@ -70,7 +108,7 @@ def convert_s3_to_s3a_path(emr_step: List[str]) -> List[str]:
 
 
 def filter_unwanted_config(args: List[str], unwanted_configs=None):
-    unwanted_configs = unwanted_configs or UNWANTED_CONFIGS
+    unwanted_configs = unwanted_configs or UNWANTED_SPARK_CONFIGS
     for conf in unwanted_configs:
         if conf in args:
             i = args.index(conf)
