@@ -32,6 +32,7 @@ jobs:
     - name: Build/Test and Push
       uses: docker/build-push-action@v2
       with:
+        target: app
         push: true
         tags: |
           ghcr.io/davlum/localemr:latest
