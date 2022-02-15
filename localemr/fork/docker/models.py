@@ -50,10 +50,7 @@ class Docker(ForkInterface):
         localemr_container = self.get_localemr_container()
 
         spark_version = cluster_to_spark_version(cluster)
-        container_image = '{repo}{spark_version}'.format(
-            repo=self.config.localemr_container_repo,
-            spark_version=spark_version,
-        )
+        container_image = 'localemr'
         env = {
             'AWS_DEFAULT_REGION': self.config.localemr_aws_default_region,
             'AWS_ACCESS_KEY_ID': self.config.localemr_aws_access_key_id,
