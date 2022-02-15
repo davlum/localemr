@@ -27,12 +27,13 @@ from localemr.common import (
 class LocalFakeCluster(FakeCluster):
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         self.step_process_queue = Queue()
         self.step_status_queue = Queue()
 
         self.cluster_process_queue = Queue()
         self.cluster_status_queue = Queue()
+
+        super().__init__(**kwargs)
         # Use latest release if none is specified
         self.release_label = self.release_label or 'emr-' + list(EMR_TO_APPLICATION_VERSION.keys())[-1]
 
