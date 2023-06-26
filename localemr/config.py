@@ -20,7 +20,7 @@ class Configuration:
         self.localemr_aws_access_key_id = os.environ.get('LOCALEMR_AWS_ACCESS_KEY_ID', 'TESTING')
         self.localemr_aws_secret_access_key = os.environ.get('LOCALEMR_AWS_SECRET_ACCESS_KEY', 'TESTING')
         self.localemr_aws_default_region = os.environ.get('LOCALEMR_AWS_DEFAULT_REGION', 'us-east-1')
-        self.localemr_container_repo = os.environ.get('LOCALEMR_CONTAINER_REPO', 'davlum/localemr-container:0.5.0-spark')
+        self.localemr_container_repo = os.environ.get('LOCALEMR_CONTAINER_REPO', 'sumitzet/localemr-container:0.7.1-spark3.3.0')
 
 
 configuration = Configuration()
